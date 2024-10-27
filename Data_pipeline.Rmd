@@ -1,0 +1,22 @@
+
+
+# Data pipeline
+
+```{r}
+# The transcripts I want to analyze are in .cha files, and each transcript is in a separate file. In order to be able to read all the .cha files at once, I first assigned the directory that includes them to an object.
+speech <- "C:/Users/Abdul/OneDrive/Desktop/Data Science/L1Arb-Eng-Articles-Analysis/Private/Vercellotti"
+
+
+# To read all the files at once, I first have to read their individual paths in a list form and assign it to an object.
+speech <- list.files(speech, pattern = "*.cha", full.names = TRUE)
+
+
+
+# Now that I have all the file paths assigned to an object, I will use map() to apply read_lines() on each element of the list. read_lines() essentially reads the contents of the file.
+speechlines <- map(speech, read_lines)
+
+
+# To make each transcript one character string instead of multiple strings, I use str_flatten() here.
+speechlines <- map(speechlines, str_flatten)
+```
+
