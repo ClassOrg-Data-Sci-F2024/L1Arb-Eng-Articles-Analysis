@@ -4,41 +4,47 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(readxl)
 ```
-
-
 
 # Data pipeline
 
+First, I need to make sure all the files are of L1 Arabic speakers.
+
 ```{r}
-# The transcripts I want to analyze are in .cha files, and each transcript is in a separate file. In order to be able to read all the .cha files at once, I first assigned the directory that includes them to an object.
+# read in the key which includes speakers' ids and L1s
+id <- read_excel("C:/Users/Abdul/OneDrive/Desktop/Directed_Study/user_id-anon_id-key_EDITED.xlsm")
 
-speech <- "C:/Users/Abdul/OneDrive/Desktop/Data Science/L1Arb-Eng-Articles-Analysis/Vercellotti"
+# only select the relevant columns
+id <- id %>% 
+  select(user_id, native_language)
 
+# the lowest id value in TalkBank is 848 and the highest is 1351. This filters out participants who are not involved in the TalkBank data and only leaves the L1 Arabic.
+Arbids <- id %>% 
+  filter(user_id > 847, user_id < 1352, native_language == "Arabic")
 
+# extract the ids as a pattern 
+onlyarb <- str_extract(Arbids$user_id, "\\d{3,}")
 
-# To read all the files at once, I first have to read their individual paths in a list form and assign it to an object.
+# this is the file that includes the TalkBank transcripts
+speech <- "Vercellotti"
 
+# this reads all the file paths to an object from which I can filter non-Arabic L1s
 speech <- list.files(speech, pattern = "*.cha", full.names = TRUE)
 
+#  collapse the different strings (ids) into one string separated by | for matching
+onlyarb <- str_flatten(onlyarb, "|")
 
+# filter out non-Arabic L1s
+speech <- str_subset(speech, onlyarb)
+```
 
-# There are 293 files in this directory, however, some transcripts are not the output of L1 Arabic speakers. This will be resolved very soon and will leave enough data for the analysis since the majority are Arabic speakers. It is also important to note that each participant contributed more than one recording (3-6).
+Now that I have only L1 Arabic speakers and have all the file paths assigned to an object, I will use `map()` to apply `read_lines()` on each element of the list. `read_lines()` essentially reads the contents of the file.
 
-length(speech)
-
-
-# Now that I have all the file paths assigned to an object, I will use map() to apply read_lines() on each element of the list. read_lines() essentially reads the contents of the file.
-
+```{r}
 speechlines <- map(speech, read_lines)
-
-
-# To make each transcript one character string instead of multiple strings, I use str_flatten() here.
-
-speechlines <- map(speechlines, str_flatten)
 ```
 
 As I mentioned in the progress [report](progress_report.md), the next step is to filter out irrelevant recordings and create a data frame through which I can work on putting the data in the shape that I want. Since the participants in this data contributed recordings across different levels in their language program, the shape of the data I am aiming for will likely have a participant's transcript from a certain level as a single observation, so each participant will be part of three observation in the data frame, as low-intermediate, high-intermediate, and low-advanced.
-
 
 
