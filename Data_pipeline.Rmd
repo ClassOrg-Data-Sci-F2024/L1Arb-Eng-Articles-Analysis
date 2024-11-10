@@ -115,6 +115,46 @@ lowadv <- speechdf %>%
 
 ```
 
+I will POS tag the data frames to make analyzing the contexts of article use possible
+```{r}
+library(udpipe)
+
+# downloading the model only needs to be done once.
+udpipe_download_model(language = "english-ewt")
+
+#loading the language model
+model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
+```
+
+POS tagging the data frames 
+```{r}
+low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
+  as_tibble() 
+
+  
+high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
+  as_tibble() 
+
+
+low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
+  as_tibble()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
