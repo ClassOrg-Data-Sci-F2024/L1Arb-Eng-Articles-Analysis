@@ -9,6 +9,8 @@ library(readxl)
 
 # Data pipeline
 
+-   1
+
 First, I need to make sure all the files are of L1 Arabic speakers.
 
 ```{r}
@@ -34,7 +36,7 @@ speech <- list.files(speech, pattern = "*.cha", full.names = TRUE)
 
 #  collapse the different strings (ids) into one string separated by | for matching
 onlyarb <- str_flatten(onlyarb, "|")
-
+# ed 
 # filter out non-Arabic L1s
 speech <- str_subset(speech, onlyarb)
 ```
@@ -46,5 +48,74 @@ speechlines <- map(speech, read_lines)
 ```
 
 As I mentioned in the progress [report](progress_report.md), the next step is to filter out irrelevant recordings and create a data frame through which I can work on putting the data in the shape that I want. Since the participants in this data contributed recordings across different levels in their language program, the shape of the data I am aiming for will likely have a participant's transcript from a certain level as a single observation, so each participant will be part of three observation in the data frame, as low-intermediate, high-intermediate, and low-advanced.
+
+-   2
+
+I need to create a variable for participants' ids, and a variable for their level.
+```{r}
+#this gives the ids listed in the file names
+ids <- str_extract(speech, "\\d{3,}")
+
+# this gives the level listed in the file names
+levels <- str_extract(speech, "_\\d{1}[A-Z]")
+levels <- str_remove_all(levels, "_|[A-Z]") 
+
+# changing the names in level to something more meaningful
+levels <- str_replace_all(levels, c("3" = "low-int", "4" = "high-int", "5" = "low-adv"))
+```
+
+Before I create the data frame, I need to remove the first few lines of metadata in the transcripts
+```{r}
+# read the lines 
+lines <- map(speech, read_lines)
+
+# put the maximum number of lines in an object
+max <- map_int(lines, length) %>% max()
+
+# this is mapping the rep function over every element in the list. The number of NAs added to each line is calculated by the max number of line - the number of lines of each element.
+evenlines <- map(lines, ~c(.x, rep(NA, max - length(.x))))
+
+# now that all the elements have even number of lines, I can put it in a tibble to use slice to remove lines I don't want. 
+tibblelines <- as_tibble(evenlines, .name_repair = "unique")
+
+# this removes the first few lines. For some reason slice_tail selects from the start not the end, and slice_head selects from the end.
+removedlines <- slice_tail(tibblelines, n = -9)
+
+# save the sliced transcripts as a list in an object to put them in a tibble with ids and levels later.
+removedlines <- as.list(removedlines) 
+
+```
+
+
+creating the data frame
+```{r}
+# create the data frame/tibble with ids and sliced transcripts
+speechdf <- tibble(ID = ids, Level = levels, Transcript = removedlines)
+```
+
+
+Cleaning the texts from `.cha` formating
+```{r}
+speechdf$Transcript <- speechdf$Transcript %>% 
+  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s") %>% 
+  str_replace_all("_", " ")
+```
+
+
+I am going to create 3 data frames to analyze the article use for each level
+```{r}
+lowint <- speechdf %>% 
+  filter(Level == "low-int")
+
+highint <- speechdf %>% 
+  filter(Level == "high-int")
+
+lowadv <- speechdf %>% 
+  filter(Level == "low-adv")
+
+```
+
+
+
 
 
