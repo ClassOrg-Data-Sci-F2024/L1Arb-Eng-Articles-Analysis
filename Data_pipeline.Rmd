@@ -9,13 +9,13 @@ library(readxl)
 
 # Data pipeline
 
--   1
+-   *Existing*
 
 First, I need to make sure all the files are of L1 Arabic speakers.
 
 ```{r}
 # read in the key which includes speakers' ids and L1s
-id <- read_excel("C:/Users/Abdul/OneDrive/Desktop/Directed_Study/user_id-anon_id-key_EDITED.xlsm")
+id <- read_excel("Private/user_id-anon_id-key_EDITED.xlsm")
 
 # only select the relevant columns
 id <- id %>% 
@@ -29,29 +29,23 @@ Arbids <- id %>%
 onlyarb <- str_extract(Arbids$user_id, "\\d{3,}")
 
 # this is the file that includes the TalkBank transcripts
-speech <- "Vercellotti"
+speech <- "data/Vercellotti"
 
 # this reads all the file paths to an object from which I can filter non-Arabic L1s
 speech <- list.files(speech, pattern = "*.cha", full.names = TRUE)
 
 #  collapse the different strings (ids) into one string separated by | for matching
 onlyarb <- str_flatten(onlyarb, "|")
-# ed 
+ 
 # filter out non-Arabic L1s
 speech <- str_subset(speech, onlyarb)
 ```
 
-Now that I have only L1 Arabic speakers and have all the file paths assigned to an object, I will use `map()` to apply `read_lines()` on each element of the list. `read_lines()` essentially reads the contents of the file.
 
-```{r}
-speechlines <- map(speech, read_lines)
-```
 
-As I mentioned in the progress [report](progress_report.md), the next step is to filter out irrelevant recordings and create a data frame through which I can work on putting the data in the shape that I want. Since the participants in this data contributed recordings across different levels in their language program, the shape of the data I am aiming for will likely have a participant's transcript from a certain level as a single observation, so each participant will be part of three observation in the data frame, as low-intermediate, high-intermediate, and low-advanced.
-
--   2
 
 I need to create a variable for participants' ids, and a variable for their level.
+
 ```{r}
 #this gives the ids listed in the file names
 ids <- str_extract(speech, "\\d{3,}")
@@ -64,7 +58,12 @@ levels <- str_remove_all(levels, "_|[A-Z]")
 levels <- str_replace_all(levels, c("3" = "low-int", "4" = "high-int", "5" = "low-adv"))
 ```
 
+
+
+
+
 Before I create the data frame, I need to remove the first few lines of metadata in the transcripts
+
 ```{r}
 # read the lines 
 lines <- map(speech, read_lines)
@@ -87,22 +86,35 @@ removedlines <- as.list(removedlines)
 ```
 
 
+
+
+
 creating the data frame
+
 ```{r}
 # create the data frame/tibble with ids and sliced transcripts
 speechdf <- tibble(ID = ids, Level = levels, Transcript = removedlines)
 ```
 
 
-Cleaning the texts from `.cha` formating
+
+
+
+Cleaning the texts from `.cha` formatting.
+
 ```{r}
 speechdf$Transcript <- speechdf$Transcript %>% 
-  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s") %>% 
+  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s") %>%
   str_replace_all("_", " ")
+
 ```
 
 
+
+
+
 I am going to create 3 data frames to analyze the article use for each level
+
 ```{r}
 lowint <- speechdf %>% 
   filter(Level == "low-int")
@@ -115,7 +127,12 @@ lowadv <- speechdf %>%
 
 ```
 
+
+
+
+
 I will POS tag the data frames to make analyzing the contexts of article use possible
+
 ```{r}
 library(udpipe)
 
@@ -126,7 +143,12 @@ udpipe_download_model(language = "english-ewt")
 model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
-POS tagging the data frames 
+
+
+
+
+POS tagging the data frames
+
 ```{r}
 low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
   as_tibble() 
@@ -144,18 +166,78 @@ low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>%
 
 
 
+Now, I will annotate the texts with POS tags so I can analyze the contexts
+
+```{r}
+#I'll annotate the texts with pos
+low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
+
+high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
+
+low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
+
+
+```
 
 
 
 
 
+Here, I will attempt to extract the contexts of article use.
+
+Low-intermediate
+```{r}
+LI_correct <- low_int$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
+  unlist() %>% 
+  str_unique()
+
+# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
+LI_incorrect <- low_int$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
+  unlist() %>% 
+  str_unique()
 
 
+# I have not started thinking about how to get indefinite article omissions
+LI_null <- low_int$annotTXT %>%
+```
 
 
+High-intermediate
+```{r}
+HI_correct <- high_int$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
+  unlist() %>% 
+  str_unique()
+
+# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
+HI_incorrect<- high_int$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
+  unlist() %>% 
+  str_unique()
 
 
+# I have not started thinking about how to get indefinite article omissions
+HI_null <- high_int$annotTXT %>%
+```
 
 
+Low-advanced
+```{r}
+LA_correct <- low_adv$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
+  unlist() %>% 
+  str_unique()
 
+# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
+LA_incorrect <- low_adv$annotTXT %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
+  unlist() %>% 
+  str_unique()
 
+# I have not started thinking about how to get indefinite article omissions
+LA_null <- low_adv$annotTXT %>% 
+```
+
+Once I have the matches I need, I will create a df for each level in which the three uses of indefinite articles will have a column.
