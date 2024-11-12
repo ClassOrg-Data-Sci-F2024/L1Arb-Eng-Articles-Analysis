@@ -1,8 +1,11 @@
 # L1Arb-Eng-Articles-Analysis
+
 Abdulmajeed's Data Science project analyzing indefinite English article use by Arabic L1 learners.
 
+## Analyzing L2 English indefinite article production by L1 Arabic learners.
 
-## Comparing L2 English indefinite article use in speaking vs writing by Arab learners.
+**This study examines the use of indefinite articles by L1 Arabic learners of English. Specifically, it examines the production of indefinite articles and contexts where an indefinite article is required. There are many studies arguing that Modern Standard Arabic does not mark indefiniteness while there are some that argue it does. The goal of this study is to determine whether Arabic marks indefiniteness overtly by examining indefinite article use in English by Arabic L1 learners. If Arabic does not mark indefiniteness overtly, then it should be expected that omission will occur in indefinite contexts. If Arabic does mark it overtly, then learners should be more consistent in their production of English indefinite articles. The data used in this study is from [Vercellotti, M. L. (2017)](https://slabank.talkbank.org/access/0docs/Vercellotti2017.pdf) which was made available on [TalkBank](https://slabank.talkbank.org/access/English/Vercellotti.html).**
 
+### 
 
-### The consensus is that Arabic does not have a morphological marker of indefiniteness (there are arguments for the opposite but, to my knowledge, no convincing evidence exists). There is work that analyzes English article use of Arabic-speaking learners. However, the data in these studies either analyze results from elicitation tasks given to learners or focus on corpus analysis of written production, very little work exists on spoken data analysis for article production from Arab learners of English. The plan for this project is to analyze the use of English indefinite articles by Arabic L1 learners in writing vs speaking. More specifically, do Arab learners of English have the same level of accuracy in their use of indefinite English articles in writing vs speaking?
+### 
