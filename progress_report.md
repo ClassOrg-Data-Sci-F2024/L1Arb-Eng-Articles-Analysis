@@ -14,7 +14,7 @@ So far, I have made sure that all the transcripts I am working with are provided
 
 ### Sharing Scheme
 
-I am using the raw data provided by Vercellotti, M. L. (2017) in TalkBank and will derive from it data for my analysis. TalkBank uses the Creative Commons license which allows users of the data to "*copy and redistribute the material in any medium or format*" and to "*remix, transform, and build upon the material*" as long as they follow the [license](https://creativecommons.org/licenses/by-nc-sa/4.0/) terms. This means I can share the data as long as I follow the terms, which will help in understanding my coding process since a decent portion of it is dedicated to the texts.
+I am using the raw data provided by Vercellotti, M. L. (2017) in TalkBank and will derive from it data for my analysis. TalkBank uses the Creative Commons BY-NC-SA 4.0 license which allows users of the data to "*copy and redistribute the material in any medium or format*" and to "*remix, transform, and build upon the material*" as long as they follow the [license](https://creativecommons.org/licenses/by-nc-sa/4.0/) terms. This means I can share the data as long as I follow the terms, which will help in understanding my coding process since a decent portion of it is dedicated to the texts.
 
 ### License
 
