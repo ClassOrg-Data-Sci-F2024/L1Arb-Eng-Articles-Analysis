@@ -19,3 +19,9 @@ I am using the raw data provided by Vercellotti, M. L. (2017) in TalkBank and wi
 ### License
 
 According to the terms of the Creative Commons [license](https://creativecommons.org/licenses/by-nc-sa/4.0/), "*If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.*". This means that the license I choose must be the same as the one used by Vercellotti and TalkBank, specifically **CC BY-NC-SA 4.0**.
+
+## 3rd Progress Report
+
+I have created a list of mass nouns to tag the mass nouns in the data. This was necessery because the POS tagger does not mark mass nouns and tags them similarly to count singular nouns, which caused issues when extracting contexts of indefinite article use. Onec that was done, I extracted the target contexts for correct, incorrect, and null article use for low-intermediate, high-intermediate, and low-advanced participants. I then put the extracted contexts into a data frame for each level and added a column for the level and use category (correct, incorrect, null). This was to make it easier for me to put all the contexts from all three levels into a column and add two columns for level and use category. This final data frame will be used for the analysis. See the [pipeline](Data_pipeline) for details.
+
+Since the goal is determine whether Arabic overtly marks indefiniteness, a count of the indefinite contexts should help answer this. If null has the most occurrences, than it is likely that Arabic does not overtly/morphologically mark indefiniteness.
