@@ -168,21 +168,21 @@ model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 
 
 
-POS tagging the data frames
+POS tagging the data frames.
 
 ```{r}
-low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
-  as_tibble()
+# low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
+#   as_tibble()
 ```
 
 ```{r}
-high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
-  as_tibble()
+# high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
+#   as_tibble()
 ```
 
 ```{r}
-low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
-  as_tibble()
+# low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
+#   as_tibble()
 ```
 
 
@@ -219,45 +219,44 @@ Now, I will annotate the texts with POS tags so I can analyze the contexts in ad
 
 ```{r}
 #I'll annotate the texts with pos
-low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")) 
+# low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")) 
 
 # this pattern was created to replace /NN with /NNC for mass nouns  
 patternn <- paste0("\\b(", paste(sub("/NNC", "", commonNN), collapse = "|"), ")\\b/NN")
 
 # Replace /NN with /NNC to tag mass nouns
-low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNC")
+# low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNC")
 
-# I have saved each tagged df so that I don't have to run the tagging operations every time. Below these chunks, I have set the code for loading. Feel free to use that to skip running the tagger.
 
 ```
 
 ```{r}
-high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
+# high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
 # Replace /NN with /NNC to tag mass nouns
-high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
+# high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
 
 ```
 
 ```{r}
-low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
+ # low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
 
-low_adv$annotTXT <- str_replace_all(low_adv$annotTXT, patternn, "\\1/NNC")
+ # low_adv$annotTXT <- str_replace_all(low_adv$annotTXT, patternn, "\\1/NNC")
 ```
 
 
 I have saved each tagged df so that I don't have to run the tagging operations every time. Below these chunks, I have set the code for loading. Feel free to use that to skip running the tagger.
 ```{r}
-saveRDS(low_int, "data/lowint.csv")
-saveRDS(high_int, "data/highint.csv")
-saveRDS(low_adv, "data/lowadv.csv")
+# saveRDS(low_int, "data/lowint.csv")
+# saveRDS(high_int, "data/highint.csv")
+# saveRDS(low_adv, "data/lowadv.csv")
 ```
 
 
 instead of tagging every time, i made these tagged dfs.
 ```{r}
-low_int <- readRDS("data/lowint.csv")
-high_int <- readRDS("data/highint.csv")
-low_adv <- readRDS("data/lowadv.csv")
+low_int <- readRDS("Private/lowint.csv")
+high_int <- readRDS("Private/highint.csv")
+low_adv <- readRDS("Private/lowadv.csv")
 ```
 
 
