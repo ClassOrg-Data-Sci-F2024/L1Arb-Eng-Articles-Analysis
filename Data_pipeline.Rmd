@@ -5,6 +5,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(readxl)
+library(naniar)
 ```
 
 # Data pipeline
@@ -87,13 +88,12 @@ removedlines <- as.list(removedlines)
 
 
 
-
-
 creating the data frame
 
 ```{r}
 # create the data frame/tibble with ids and sliced transcripts
 speechdf <- tibble(ID = ids, Level = levels, Transcript = removedlines)
+
 ```
 
 
@@ -104,8 +104,10 @@ Cleaning the texts from `.cha` formatting.
 
 ```{r}
 speechdf$Transcript <- speechdf$Transcript %>% 
-  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s") %>%
+  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
   str_replace_all("_", " ")
+
+head(speechdf$Transcript)
 
 ```
 
@@ -145,99 +147,327 @@ model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 
 
 
+<!-- instead of creating three different df create a column with the tagged dfs -->
+<!-- ```{r} -->
+<!-- ANNOTspeech <- speechdf %>% -->
+<!--   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble)) -->
+
+<!-- low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))  -->
+
+
+<!-- # saved the file so I don't have to run udpipe_annotate() every time -->
+<!-- saveRDS(ANNOTspeech, "articles-analysis.csv") -->
+
+
+<!-- ANNOTspeech <- readRDS("articles-analysis.csv") -->
+
+<!-- head(ANNOTspeech$annoTXT, 1) -->
+
+<!-- ``` -->
+
+
 
 
 POS tagging the data frames
 
 ```{r}
 low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
-  as_tibble() 
+  as_tibble()
+```
 
-  
+```{r}
 high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
-  as_tibble() 
+  as_tibble()
+```
 
-
+```{r}
 low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
   as_tibble()
 ```
 
 
 
-
-
-Now, I will annotate the texts with POS tags so I can analyze the contexts
-
+a list of common nouns:
 ```{r}
-#I'll annotate the texts with pos
-low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
-
-high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
-
-low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
-
+commonNN <- c("admiration/NNC", "advice/NNC", "air/NNC", "anger/NNC", "anticipation/NNC", 
+              "assistance/NNC", "awareness/NNC", "bacon/NNC", "baggage/NNC", "blood/NNC", 
+              "bravery/NNC", "chess/NNC", "clay/NNC", "clothing/NNC", "coal/NNC", "compliance/NNC", 
+              "comprehension/NNC", "confusion/NNC", "consciousness/NNC", "cream/NNC", "darkness/NNC", 
+              "diligence/NNC", "dust/NNC", "education/NNC", "empathy/NNC", "enthusiasm/NNC", "envy/NNC", 
+              "equality/NNC", "equipment/NNC", "evidence/NNC", "feedback/NNC", "fitness/NNC", "flattery/NNC", 
+              "foliage/NNC", "fun/NNC", "furniture/NNC", "garbage/NNC", "gold/NNC", "gossip/NNC", 
+              "grammar/NNC", "gratitude/NNC", "gravel/NNC", "guilt/NNC", "happiness/NNC", "hardware/NNC", 
+              "hate/NNC", "hay/NNC", "health/NNC", "heat/NNC", "help/NNC", "hesitation/NNC", "homework/NNC", 
+              "honesty/NNC", "honor/NNC", "hospitality/NNC", "hostility/NNC", "humanity/NNC", "humility/NNC", 
+              "ice/NNC", "immortality/NNC", "independence/NNC", "information/NNC", "integrity/NNC", 
+              "intimidation/NNC", "jargon/NNC", "jealousy/NNC", "jewelry/NNC", "justice/NNC", "knowledge/NNC", 
+              "literacy/NNC", "logic/NNC", "luck/NNC", "lumber/NNC", "luggage/NNC", "mail/NNC", "management/NNC", 
+              "merchandise/NNC", "milk/NNC", "morale/NNC", "mud/NNC", "music/NNC", "nonsense/NNC", "oppression/NNC", 
+              "optimism/NNC", "oxygen/NNC", "participation/NNC", "pay/NNC", "peace/NNC", "perseverance/NNC", 
+              "pessimism/NNC", "pneumonia/NNC", "poetry/NNC", "police/NNC", "pride/NNC", "privacy/NNC", 
+              "propaganda/NNC", "public/NNC", "punctuation/NNC", "recovery/NNC", "rice/NNC", "rust/NNC", 
+              "satisfaction/NNC", "shame/NNC", "sheep/NNC", "slang/NNC", "software/NNC", "spaghetti/NNC", 
+              "stamina/NNC", "starvation/NNC", "steam/NNC", "steel/NNC", "stuff/NNC", "support/NNC", "sweat/NNC", 
+              "thunder/NNC", "timber/NNC", "toil/NNC", "traffic/NNC", "training/NNC", "trash/NNC", 
+              "understanding/NNC", "valor/NNC", "vehemence/NNC", "violence/NNC", "warmth/NNC", "waste/NNC", 
+              "weather/NNC", "wheat/NNC", "wisdom/NNC", "work/NNC", "food/NNC", "ham/NNC", "beef/NNC", "lettuce/NNC", "tv/NNC")
 
 ```
 
 
+Now, I will annotate the texts with POS tags so I can analyze the contexts in addition to tagging mass nouns, which the tagger does not mark.
+
+```{r}
+#I'll annotate the texts with pos
+low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")) 
+
+# this pattern was created to replace /NN with /NNC for mass nouns  
+patternn <- paste0("\\b(", paste(sub("/NNC", "", commonNN), collapse = "|"), ")\\b/NN")
+
+# Replace /NN with /NNC to tag mass nouns
+low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNC")
+
+# I have saved each tagged df so that I don't have to run the tagging operations every time. Below these chunks, I have set the code for loading. Feel free to use that to skip running the tagger.
+
+```
+
+```{r}
+high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
+# Replace /NN with /NNC to tag mass nouns
+high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
+
+```
+
+```{r}
+low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
+
+low_adv$annotTXT <- str_replace_all(low_adv$annotTXT, patternn, "\\1/NNC")
+```
 
 
+I have saved each tagged df so that I don't have to run the tagging operations every time. Below these chunks, I have set the code for loading. Feel free to use that to skip running the tagger.
+```{r}
+saveRDS(low_int, "data/lowint.csv")
+saveRDS(high_int, "data/highint.csv")
+saveRDS(low_adv, "data/lowadv.csv")
+```
 
-Here, I will attempt to extract the contexts of article use.
+
+instead of tagging every time, i made these tagged dfs.
+```{r}
+low_int <- readRDS("data/lowint.csv")
+high_int <- readRDS("data/highint.csv")
+low_adv <- readRDS("data/lowadv.csv")
+```
+
+
+Here, I will attempt to extract the contexts of article use for low-intermediate, high-intermediate, and low-advanced.
 
 Low-intermediate
 ```{r}
 LI_correct <- low_int$annotTXT %>% 
+  str_unique() %>% 
+  str_remove_all("\\b../NN") %>% 
   str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist() %>% 
-  str_unique()
+  unlist()
+
+
 
 # I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
 LI_incorrect <- low_int$annotTXT %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist() %>% 
-  str_unique()
+  str_unique() %>% 
+  str_remove_all("\\b../NN") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
+  unlist()
 
 
-# I have not started thinking about how to get indefinite article omissions
+
+# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used. 
+
+pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?(\\w+|someone|something|somewhere|everything|everyone)/NN\\s"
+patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anthing)/NN\\s"
+
+# pulls out instances where a/an should have been used.
 LI_null <- low_int$annotTXT %>%
+  str_unique() %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_split(pattern) %>%
+  str_split(patt) %>% 
+  str_remove_all("um/NN") %>%
+  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
+  unlist()
 ```
+
+
 
 
 High-intermediate
 ```{r}
 HI_correct <- high_int$annotTXT %>% 
+  str_unique() %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
   str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist() %>% 
-  str_unique()
+  unlist()
 
-# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
+
+
 HI_incorrect<- high_int$annotTXT %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist() %>% 
-  str_unique()
+  str_unique() %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
+  unlist()
 
 
-# I have not started thinking about how to get indefinite article omissions
+
+pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
+patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody)/NN\\s"
+
 HI_null <- high_int$annotTXT %>%
+  str_unique() %>% 
+  str_split(pattern) %>%
+  str_split(patt) %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") %>% 
+  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
+  unlist()
 ```
-
 
 Low-advanced
 ```{r}
 LA_correct <- low_adv$annotTXT %>% 
+  str_unique() %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
   str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist() %>% 
-  str_unique()
+  unlist()
 
-# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
+
+
 LA_incorrect <- low_adv$annotTXT %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist() %>% 
-  str_unique()
+  str_unique() %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
+  unlist()
 
-# I have not started thinking about how to get indefinite article omissions
+  
+
 LA_null <- low_adv$annotTXT %>% 
+  str_unique() %>% 
+  str_split(pattern) %>%
+  str_split(patt) %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
+  unlist()
 ```
 
-Once I have the matches I need, I will create a df for each level in which the three uses of indefinite articles will have a column.
+
+
+Here, I put the extracted contexts into a df and added a columns tagging level and use.
+
+low-intermediate
+```{r}
+lowint_corr <- str_unique(LI_correct) %>% 
+  as_tibble() %>% 
+rename("LI_correct" = "value") %>% 
+  mutate(status = "low-int_correct", .after = LI_correct)
+lowint_corr
+
+
+lowint_incorr <- str_unique(LI_incorrect) %>%
+  as_tibble() %>% 
+rename("LI_incorrect" = "value") %>% 
+  mutate(status = "low-int_incorrect", .after = LI_incorrect)
+
+
+
+lowint_null <- str_unique(LI_null) %>% 
+  as_tibble() %>% 
+rename("LI_null" = "value") %>% 
+  mutate(status = "low-int_null", .after = LI_null)
+lowint_null
+```
+
+
+
+high-intermediate
+```{r}
+highint_corr <- str_unique(HI_correct) %>% 
+  as_tibble() %>% 
+rename("HI_correct" = "value") %>% 
+  mutate(status = "high-int_correct", .after = HI_correct) 
+highint_corr 
+
+highint_incorr <- str_unique(HI_incorrect) %>%
+  as_tibble() %>% 
+rename("HI_incorrect" = "value") %>% 
+  mutate(status = "high-int_incorrect", .after = HI_incorrect)
+
+
+highint_null <- str_unique(HI_null) %>% 
+  as_tibble() %>% 
+rename("HI_null" = "value") %>% 
+  mutate(status = "high-int_null", .after = HI_null)
+
+```
+
+
+low-advanced
+```{r}
+lowad_corr <- str_unique(LA_correct) %>%
+  as_tibble() %>% 
+rename("LA_correct" = "value") %>% 
+  mutate(status = "low-adv_correct", .after = LA_correct)
+```
+
+
+```{r}
+lowad_incorr <- str_unique(LA_incorrect) %>%
+  as_tibble() %>% 
+rename("LA_incorrect" = "value") %>% 
+  mutate(status = "low-adv_incorrect", .after = LA_incorrect)
+```
+
+
+```{r}
+lowad_null <- str_unique(LA_null) %>% 
+  as_tibble() %>% 
+rename("LA_null" = "value") %>% 
+  mutate(status = "low-adv_null", .after = LA_null)
+```
+
+
+
+Creating the variables from the tibbles created above to get the "final" form of the data from which the analysis can be done.
+```{r}
+Status <- c(lowint_corr$status, lowint_incorr$status, lowint_null$status, highint_corr$status, highint_incorr$status, highint_null$status, lowad_corr$status, lowad_incorr$status, lowad_null$status)
+
+Article_contexts <- c(lowint_corr$LI_correct, lowint_incorr$LI_incorrect, lowint_null$LI_null, highint_corr$HI_correct, highint_incorr$HI_incorrect,  highint_null$HI_null, lowad_corr$LA_correct, lowad_incorr$LA_incorrect,  lowad_null$LA_null)
+
+articles <- tibble(Article_contexts, Status)
+
+# separating level and correctness of use into two columns
+articles <- articles %>% 
+  separate(Status, into = c("Level", "Use"), sep = "_")
+
+
+#This is the final form of the data. For any new changes I make I'll run this again to overwrite the old version
+saveRDS(articles, "data/articles_final.csv")
+
+
+```
+
+
+For this project the main goal is to see how many times the participants used articles, correctly or incorrectly, vs omitted them from obligatory contexts. To this end, a count of instances will be used. Some more work needs to be done to ensure all the examples included in each category is appropriate, but the analysis goal will remain the same for now.
+
+```{r}
+articles %>% 
+  count(Level, Use)
+```
+
+
