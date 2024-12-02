@@ -96,11 +96,13 @@ speechdf <- tibble(ID = ids, Level = levels, Transcript = removedlines)
 
 speechdf
 speechdf %>% 
-  count(Level)
+  filter(Level == "high-int")  %>% 
+  distinct(ID) 
+  count(ID)
 
 speechdf %>% 
-  filter(Level == "low-int") %>% 
-  count(ID, Level)
+  count(Level) %>% 
+  rename(Contributions = "n")
 ```
 
 
@@ -194,7 +196,7 @@ POS tagging the data frames.
 
 
 
-a list of common nouns:
+a list of mass nouns:
 ```{r}
 commonNN <- c("admiration/NNC", "advice/NNC", "air/NNC", "anger/NNC", "anticipation/NNC", 
               "assistance/NNC", "awareness/NNC", "bacon/NNC", "baggage/NNC", "blood/NNC", 
@@ -222,7 +224,7 @@ commonNN <- c("admiration/NNC", "advice/NNC", "air/NNC", "anger/NNC", "anticipat
 ```
 
 
-Now, I will annotate the texts with POS tags so I can analyze the contexts in addition to tagging mass nouns, which the tagger does not mark.
+Now, I will annotate the texts with POS tags so I can analyze the contexts, in addition to tagging mass nouns, which the tagger does not mark.
 
 ```{r}
 #I'll annotate the texts with pos
@@ -239,6 +241,7 @@ patternn <- paste0("\\b(", paste(sub("/NNC", "", commonNN), collapse = "|"), ")\
 
 ```{r}
 # high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
+
 # Replace /NN with /NNC to tag mass nouns
 # high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
 
@@ -370,14 +373,26 @@ HI_null <- high_int$annotTXT %>%
   str_split(patt) %>% 
   str_split("are/VBP|something/NN\\s") %>% 
   str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") 
-  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
+  str_remove_all("\\b./NN\\s|\\bwor") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+  str_remove_all("um/NN|um/JJ") %>%
+  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
   unlist()
 str_unique(HI_null)
-  str_subset("many/")
-head(HI_null, 12)
+  
+
+
+
+
+# it was easier and faster for the high-int to pick out the suitable contexts rather than the ill fitted ones because of the large number of contributions in this level
+
+HI_null <- c("that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ") 
+
+length(HI_null)
+HI_null
 ```
+
+
 
 Low-advanced
 ```{r}
@@ -385,7 +400,7 @@ LA_correct <- low_adv$annotTXT %>%
   str_unique() %>% 
   str_remove_all("\\b../NN\\s") %>% 
   str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("a/DT\\senter/NN|a/DT\\skra/NN|a/DT\\smoney/NN|a/DT\\scensorshi/NN\\scen/NN") %>% 
+  str_remove_all("a/DT\\senter/NN|a/DT\\skra/NN|a/DT\\smoney/NN|a/DT\\scensorshi/NN\\scen/NN|a/DT\\scompassion/NN|a/DT\\sligstory/NN\\sluxury/NN ") %>% 
   str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
   unlist()
 str_unique(LA_correct)
@@ -417,10 +432,16 @@ LA_null <- low_adv$annotTXT %>%
   str_split("are/VBP") %>% 
   str_remove_all("\\b../NN\\s") %>% 
   str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
+  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
   unlist()
 str_unique(LA_null) 
   str_subset("are/VBP")
+  
+LA_null  <- c("by/IN using/VBG protect/JJ protect/NN program/NN " , "of/IN living/VBG in/IN computer/NN society/NN ", "I/PRP think/VBP violence/NNCC movie/NN has/VBZ ", "in/IN computer/NN sized/VBN computerized/VBN society/NN ", "I/PRP gave/VBD example/NN ", "there/EX is/VBZ there/EX is/VBZ amount/NN "  , "people/NNS have/VBP real/JJ problem/NN " , "it/PRP s/VBZ good/JJ thing/NN " , "by/IN using/VBG antivirus/IN program/NN " , "they/PRP use/VBP new/JJ way/NN " ,  "which/WDT is/VBZ virus/NN antivirus/JJ program/NN " , "with/IN swimming/VBG pool/NN ", "and/CC being/VBG danger/NN " , "they/PRP live/VBP unhealthy/JJ life/NN "  , "that/WDT is/VBZ that/IN is/VBZ risk/NN ")
+  
+  LA_null %>% 
+    str_extract("that/WDT\\sfocus/VBP\\sin/IN\\sviolence/NNCC\\smovie/NN\\s\\w+/\\w+")
+  
 ```
 
 
@@ -500,13 +521,13 @@ rename("LA_correct" = "value") %>%
 lowad_incorrPL <- str_unique(LA_incorrectPL) %>%
   as_tibble() %>% 
 rename("LA_incorrectPL" = "value") %>% 
-  mutate(status = "low-adv_incorrectPL", .after = LA_incorrectPL)
+  mutate(status = "low-adv_incorrect-PL", .after = LA_incorrectPL)
 
 # incorrect with mass
 lowad_incorrMS <- str_unique(LA_incorrectMS) %>%
   as_tibble() %>% 
 rename("LA_incorrectMS" = "value") %>% 
-  mutate(status = "low-adv_incorrectMS", .after = LA_incorrectMS)
+  mutate(status = "low-adv_incorrect-MS", .after = LA_incorrectMS)
 ```
 
 
@@ -531,11 +552,12 @@ articles <- tibble(Article_contexts, Status)
 articles <- articles %>% 
   separate(Status, into = c("Level", "Use"), sep = "_")
 
-articles
+view(articles)
 #This is the final form of the data. For any new changes I make I'll run this again to overwrite the old version
 saveRDS(articles, "data/articles_final.csv")
 articles <- readRDS("data/articles_final.csv")
 
+#write_csv(articles, "Private/articles_final2.csv")
 ```
 
 
@@ -543,12 +565,45 @@ For this project the main goal is to see how many times the participants used ar
 
 ```{r}
 articles %>% 
-  count(Level, Use)
-articles
-  ggplot(aes(as.factor(Use)))+
-  geom_bar()
-
-articles %>% 
+  count(Use)
 ```
-maybe consider adding participant ids, and don't forget to split incorrect into PL and MS
+
+
+```{r}
+# This code shows the overall frequency with each level indicated in the plot
+articles %>% 
+  ggplot(aes(Use, fill = Level))+
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("high-int" = "black", "low-int" = "darkgreen", "low-adv" = "darkblue"))
+
+
+
+# This code visualizes the frequency for each level with renamed variables for better visibility on the plot
+articles1 <- articles
+articles1$Use <- articles1$Use %>%  
+  str_replace_all("correct", "cor") %>% 
+  str_replace_all("incorrect-PL", "incPL") %>%
+  str_replace_all("incorrect-MS", "incMS") 
+articles1 %>% 
+  ggplot(aes(Use))+
+  geom_bar(fill = "brown")+
+  facet_wrap(~Level)
+
+```
+```{r}
+# only selecting correct and null for the proportion table
+arts <- articles %>% 
+  filter(Use == "correct"|Use == "null") 
+table(arts$Level, arts$Use)
+
+s <- prop.table(table(arts$Level, arts$Use), 1)
+
+
+
+# changing the values from the proportions table into percentages
+ss <- apply(s * 100, 2, function(x) paste0(round(x, 1), "%"))
+rownames(ss)<- rownames(s)
+ss
+```
+
 
