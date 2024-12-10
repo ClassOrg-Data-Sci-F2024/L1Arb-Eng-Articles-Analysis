@@ -93,7 +93,7 @@ head(removedlines)
 
 ```{r}
 clean <- removedlines %>% 
-   str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
+   str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^.|^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
   str_replace_all("_", " ")
 
 g <- as.list(clean)
@@ -129,9 +129,11 @@ speechd
 
 Cleaning the texts from `.cha` formatting.
 
+maybe I should not remove punctuation [^\\w|\\s] so that the pos tagger knows 
+
 ```{r}
 speechdf$Transcript <- speechdf$Transcript %>% 
-  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
+  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^.|^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
   str_replace_all("_", " ")
 
 head(speechdf$Transcript)
@@ -179,27 +181,56 @@ instead of creating three different df create a column with the tagged dfs
 ANNOTspeech <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble))
 
+ANNOTspeechh <- speechdf %>%
+  mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
+                         mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = ""))))
+
+head(ANNOTspeechh$annoTXT, 2)
 low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
 
 
 # saved the file so I don't have to run udpipe_annotate() every time
 saveRDS(ANNOTspeech, "articles-analysis.csv")
-
+saveRDS(ANNOTspeech, "Private/articles-analysis1.csv")
 
 ANNOTspeech <- readRDS("Private/articles-analysis.csv")
-
+ANNOTspeech <- readRDS("Private/articles-analysis1.csv")
 head(ANNOTspeech$annoTXT, 1)
 ANNOTspeech$annoTXT %>% 
   map_int(nrow) %>% 
   sum()
+
 ANNOTspeech <- ANNOTspeech %>% 
-  unnest(annoTXT) %>% 
+  unnest(annoTXT) 
   select(ID, Level, Transcript, token, xpos)
 
+ANNOTspeech  
+  unique(ANNOTspeech$token_id)
+  
 head(ANNOTspeech)
 
 ANNOTspeech <- ANNOTspeech %>%  mutate(annotTXT = paste(ANNOTspeech$token, "/", ANNOTspeech$xpos, collapse = " ", sep = "")) %>% 
   select(-token, -xpos)
+
+
+# Replace /NN with /NNC to tag mass nouns
+# patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
+# 
+# ANNOTspeech$annotTXT <- str_replace_all(ANNOTspeech$annotTXT, patternn, "\\1/NNM")
+  
+head(ANNOTspeech,30)
+slice_tail(ANNOTspeech, n = 9)
+
+z <- distinct(ANNOTspeech)
+head(z, 10)
+
+head(ANNOTspeech$annotTXT, 3)
+```
+
+
+
+```{r}
+
 ```
 
 
@@ -241,28 +272,28 @@ lowint %>%
 
 a list of mass nouns:
 ```{r}
-commonNN <- c("admiration/NNC", "advice/NNC", "air/NNC", "anger/NNC", "anticipation/NNC", 
-              "assistance/NNC", "awareness/NNC", "bacon/NNC", "baggage/NNC", "blood/NNC", 
-              "bravery/NNC", "chess/NNC", "clay/NNC", "clothing/NNC", "coal/NNC", "compliance/NNC", 
-              "comprehension/NNC", "confusion/NNC", "consciousness/NNC", "cream/NNC", "darkness/NNC", 
-              "diligence/NNC", "dust/NNC", "education/NNC", "empathy/NNC", "enthusiasm/NNC", "envy/NNC", 
-              "equality/NNC", "equipment/NNC", "evidence/NNC", "feedback/NNC", "fitness/NNC", "flattery/NNC", 
-              "foliage/NNC", "fun/NNC", "furniture/NNC", "garbage/NNC", "gold/NNC", "gossip/NNC", 
-              "grammar/NNC", "gratitude/NNC", "gravel/NNC", "guilt/NNC", "happiness/NNC", "hardware/NNC", 
-              "hate/NNC", "hay/NNC", "health/NNC", "heat/NNC", "help/NNC", "hesitation/NNC", "homework/NNC", 
-              "honesty/NNC", "honor/NNC", "hospitality/NNC", "hostility/NNC", "humanity/NNC", "humility/NNC", 
-              "ice/NNC", "immortality/NNC", "independence/NNC", "information/NNC", "integrity/NNC", 
-              "intimidation/NNC", "jargon/NNC", "jealousy/NNC", "jewelry/NNC", "justice/NNC", "knowledge/NNC", 
-              "literacy/NNC", "logic/NNC", "luck/NNC", "lumber/NNC", "luggage/NNC", "mail/NNC", "management/NNC", 
-              "merchandise/NNC", "milk/NNC", "morale/NNC", "mud/NNC", "music/NNC", "nonsense/NNC", "oppression/NNC", 
-              "optimism/NNC", "oxygen/NNC", "participation/NNC", "pay/NNC", "peace/NNC", "perseverance/NNC", 
-              "pessimism/NNC", "pneumonia/NNC", "poetry/NNC", "police/NNC", "pride/NNC", "privacy/NNC", 
-              "propaganda/NNC", "public/NNC", "punctuation/NNC", "recovery/NNC", "rice/NNC", "rust/NNC", 
-              "satisfaction/NNC", "shame/NNC", "sheep/NNC", "slang/NNC", "software/NNC", "spaghetti/NNC", 
-              "stamina/NNC", "starvation/NNC", "steam/NNC", "steel/NNC", "stuff/NNC", "support/NNC", "sweat/NNC", 
-              "thunder/NNC", "timber/NNC", "toil/NNC", "traffic/NNC", "training/NNC", "trash/NNC", 
-              "understanding/NNC", "valor/NNC", "vehemence/NNC", "violence/NNC", "warmth/NNC", "waste/NNC", 
-              "weather/NNC", "wheat/NNC", "wisdom/NNC", "work/NNC", "food/NNC", "ham/NNC", "beef/NNC", "lettuce/NNC", "tv/NNC")
+massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
+  "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
+  "bravery/NNM", "chess/NNM", "clay/NNM", "clothing/NNM", "coal/NNM", "compliance/NNM",
+  "comprehension/NNM", "confusion/NNM", "consciousness/NNM", "cream/NNM", "darkness/NNM",
+  "diligence/NNM", "dust/NNM", "education/NNM", "empathy/NNM", "enthusiasm/NNM", "envy/NNM",
+  "equality/NNM", "equipment/NNM", "evidence/NNM", "feedback/NNM", "fitness/NNM", "flattery/NNM",
+  "foliage/NNM", "fun/NNM", "furniture/NNM", "garbage/NNM", "gold/NNM", "gossip/NNM",
+  "grammar/NNM", "gratitude/NNM", "gravel/NNM", "guilt/NNM", "happiness/NNM", "hardware/NNM",
+  "hate/NNM", "hay/NNM", "health/NNM", "heat/NNM", "help/NNM", "hesitation/NNM", "homework/NNM",
+  "honesty/NNM", "honor/NNM", "hospitality/NNM", "hostility/NNM", "humanity/NNM", "humility/NNM",
+  "ice/NNM", "immortality/NNM", "independence/NNM", "information/NNM", "integrity/NNM",
+  "intimidation/NNM", "jargon/NNM", "jealousy/NNM", "jewelry/NNM", "justice/NNM", "knowledge/NNM",
+  "literacy/NNM", "logic/NNM", "luck/NNM", "lumber/NNM", "luggage/NNM", "mail/NNM", "management/NNM",
+  "merchandise/NNM", "milk/NNM", "morale/NNM", "mud/NNM", "music/NNM", "nonsense/NNM", "oppression/NNM",
+  "optimism/NNM", "oxygen/NNM", "participation/NNM", "pay/NNM", "peace/NNM", "perseverance/NNM",
+  "pessimism/NNM", "pneumonia/NNM", "poetry/NNM", "police/NNM", "pride/NNM", "privacy/NNM",
+  "propaganda/NNM", "public/NNM", "punctuation/NNM", "recovery/NNM", "rice/NNM", "rust/NNM",
+  "satisfaction/NNM", "shame/NNM", "sheep/NNM", "slang/NNM", "software/NNM", "spaghetti/NNM",
+  "stamina/NNM", "starvation/NNM", "steam/NNM", "steel/NNM", "stuff/NNM", "support/NNM", "sweat/NNM",
+  "thunder/NNM", "timber/NNM", "toil/NNM", "traffic/NNM", "training/NNM", "trash/NNM",
+  "understanding/NNM", "valor/NNM", "vehemence/NNM", "violence/NNM", "warmth/NNM", "waste/NNM",
+  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM")
 
 ```
 
@@ -274,10 +305,10 @@ Now, I will annotate the texts with POS tags so I can analyze the contexts, in a
 low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
 low_int <-  low_int %>% paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")
 # this pattern was created to replace /NN with /NNC for mass nouns  
-patternn <- paste0("\\b(", paste(sub("/NNC", "", commonNN), collapse = "|"), ")\\b/NN")
+patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
 
 # Replace /NN with /NNC to tag mass nouns
-# low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNC")
+# low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNM")
 
 str_length(low_int)
 ```
