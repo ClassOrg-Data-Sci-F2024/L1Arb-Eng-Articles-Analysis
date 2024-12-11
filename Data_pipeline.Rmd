@@ -175,23 +175,71 @@ model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
 
+a list of mass nouns:
+```{r}
+massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
+  "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
+  "bravery/NNM", "chess/NNM", "clay/NNM", "clothing/NNM", "coal/NNM", "compliance/NNM",
+  "comprehension/NNM", "confusion/NNM", "consciousness/NNM", "cream/NNM", "darkness/NNM",
+  "diligence/NNM", "dust/NNM", "education/NNM", "empathy/NNM", "enthusiasm/NNM", "envy/NNM",
+  "equality/NNM", "equipment/NNM", "evidence/NNM", "feedback/NNM", "fitness/NNM", "flattery/NNM",
+  "foliage/NNM", "fun/NNM", "furniture/NNM", "garbage/NNM", "gold/NNM", "gossip/NNM",
+  "grammar/NNM", "gratitude/NNM", "gravel/NNM", "guilt/NNM", "happiness/NNM", "hardware/NNM",
+  "hate/NNM", "hay/NNM", "health/NNM", "heat/NNM", "help/NNM", "hesitation/NNM", "homework/NNM",
+  "honesty/NNM", "honor/NNM", "hospitality/NNM", "hostility/NNM", "humanity/NNM", "humility/NNM",
+  "ice/NNM", "immortality/NNM", "independence/NNM", "information/NNM", "integrity/NNM",
+  "intimidation/NNM", "jargon/NNM", "jealousy/NNM", "jewelry/NNM", "justice/NNM", "knowledge/NNM",
+  "literacy/NNM", "logic/NNM", "luck/NNM", "lumber/NNM", "luggage/NNM", "mail/NNM", "management/NNM",
+  "merchandise/NNM", "milk/NNM", "morale/NNM", "mud/NNM", "music/NNM", "nonsense/NNM", "oppression/NNM",
+  "optimism/NNM", "oxygen/NNM", "participation/NNM", "pay/NNM", "peace/NNM", "perseverance/NNM",
+  "pessimism/NNM", "pneumonia/NNM", "poetry/NNM", "police/NNM", "pride/NNM", "privacy/NNM",
+  "propaganda/NNM", "public/NNM", "punctuation/NNM", "recovery/NNM", "rice/NNM", "rust/NNM",
+  "satisfaction/NNM", "shame/NNM", "sheep/NNM", "slang/NNM", "software/NNM", "spaghetti/NNM",
+  "stamina/NNM", "starvation/NNM", "steam/NNM", "steel/NNM", "stuff/NNM", "support/NNM", "sweat/NNM",
+  "thunder/NNM", "timber/NNM", "toil/NNM", "traffic/NNM", "training/NNM", "trash/NNM",
+  "understanding/NNM", "valor/NNM", "vehemence/NNM", "violence/NNM", "warmth/NNM", "waste/NNM",
+  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM", "money/NNM", "pollution/NNM", "oil/NNM", "bread/NNM", "pasta/NNM", "hair/NNM", "football/NNM", "soccer/NNM", "cheese/NNM", "english/NNM",  )
+
+```
+
 
 instead of creating three different df create a column with the tagged dfs
 ```{r}
 ANNOTspeech <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble))
 
+patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
+
+# this is the one!!
 ANNOTspeechh <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
-                         mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = ""))))
+                         mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = "") %>% str_replace_all(patternn, "\\1/NNM"))))
 
+
+ANNOTspeech <- ANNOTspeechh %>% 
+  unnest(annoTXT) %>% 
+  select(ID, Level, Transcript, annotTXT)
+
+ANNOTspeech <- distinct(ANNOTspeech)
+
+str_replace_all(patternn, "\\1/NNM")
+head(ANNOTspeech)
+```
+
+```{r}
+
+```
+
+
+
+```{r}
 head(ANNOTspeechh$annoTXT, 2)
 low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
 
 
 # saved the file so I don't have to run udpipe_annotate() every time
 saveRDS(ANNOTspeech, "articles-analysis.csv")
-saveRDS(ANNOTspeech, "Private/articles-analysis1.csv")
+saveRDS(ANNOTspeech, "Private/articles-analysis.csv")
 
 ANNOTspeech <- readRDS("Private/articles-analysis.csv")
 ANNOTspeech <- readRDS("Private/articles-analysis1.csv")
@@ -230,10 +278,149 @@ head(ANNOTspeech$annotTXT, 3)
 
 
 ```{r}
+ANNOTspeech <- ANNOTspeech %>% 
+  mutate(correct = ANNOTspeech$annotTXT %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_remove_all("a/DT\\screating/NN\\s|a/DT\\smam/NN\\s|a/DT\\sfewer/JJR\\sgarage/NN\\s|a/DT\\sthe/DT\\stopic/NN\\s|a/DT\\sfewer/JJR\\sparking/NN\\s|a/DT\\slot/NN") %>% 
+  str_remove_all("pollution|a/DT\\smany/JJ\\sfuture/NN|a/DT\\smissing/NN|a/DT\\sskin/NN\\scancer/NN|a/DT\\slil/NN|a/DT\\sArab/JJ\\sGulf/NN|a/DT\\sgood/JJ\\sethics/NN|a/DT\\stha/NN|an/DT\\sd/JJ\\smoreover/NN|a/DT\\swalking/NN|a/DT\\smoney/NN") %>% 
+  str_remove_all("a/DT\\senter/NN|a/DT\\skra/NN|a/DT\\smoney/NN|a/DT\\scensorshi/NN\\scen/NN|a/DT\\scompassion/NN|a/DT\\sligstory/NN\\sluxury/NN ") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s"),
+  
+  incorrectPL =  ANNOTspeech$annotTXT %>%
+  str_remove_all("\\b../NN") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_remove_all("a/DT\\sfew/JJ\\sbuses/NNS") %>%
+  str_remove_all("a/DT\\scouple/NN\\syears/NNS") %>% 
+  str_remove_all("a/DT\\sfew/JJ\\sscenes/NNS|a/DT\\sfew/JJ\\smovies/NNS") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS"),
+  
+  incorrectMS = ANNOTspeech$annotTXT %>%
+  str_remove_all("\\b../NN") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_remove_all("a/DT\\swhole/JJ\\ssheep/NNC") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM"),
+  
+  incorrectNull =  ANNOTspeech$annotTXT %>%
+  str_split(pattern1) %>%
+  str_split(pattern2) %>% 
+  str_split("are/VBP") %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s|\\bwor") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+  str_remove_all("um/NN|um/JJ") %>%
+  str_extract_all(noart),
+  
+  incorrectNull1 =  ANNOTspeech$annotTXT %>%
+  str_split(pattern1) %>%
+  str_split(pattern2) %>% 
+  str_split("are/VBP") %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s|\\bwor") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+  str_remove_all("um/NN|um/JJ") %>%
+  str_extract_all(noart2))
 
+
+ANNOTspeech <- ANNOTspeech %>% 
+  pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "status", values_to = "contexts") %>% 
+  unnest(contexts) %>% distinct() 
+
+ANNOTspeech$status<- ANNOTspeech$status %>% 
+  str_replace_all("incorrectNull1", "incorrectNull")
+
+  ANNOTspeech %>% 
+    count(Level, status)
+    filter(status == "correct") %>% 
+  
+saveRDS(ANNOTspeech, "Private/fulldataframe.csv")
 ```
 
 
+```{r}
+
+ann <- ANNOTspeech %>% 
+  filter(Level == "low-adv") 
+ann$annotTXT %>%
+  str_split(pattern1) %>%
+  str_split(pattern2) %>% 
+  str_split("are/VBP") %>% 
+  str_remove_all("\\b../NN\\s") %>% 
+  str_remove_all("\\b./NN\\s|\\bwor") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+  str_remove_all("um/NN|um/JJ") %>%
+str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
+  unlist()
+ ann 
+
+# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
+
+pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
+pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|experience|worhis|forget|shopping|Weam|childhood)/NN\\s"
+
+noart <- str_c("because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN " , "it/PRP s/VBZ good/JJ transportation/NN " ,    
+  "people/NNS use/VBP car/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN "  , "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN " , "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN " ,    
+ "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
+ "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
+ "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
+ "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
+ "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
+ "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
+ "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
+ "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
+ "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
+ "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
+ "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
+ "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
+ "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
+ "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
+ "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
+ "I/PRP saw/VBD fn/JJ snake/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", sep = "|") %>% str_replace_all(" ", "\\\\s")
+
+ noart2<- str_c("country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", sep = "|" ) %>% 
+  str_replace_all(" ", "\\\\s")
+
+str_count(noart)
+str_subset(nofit, "NNC")
+noart2
+
+ll <-  LI_correct  
+  mutate(status_c = rep("correct", 208), .after = "correct") %>%  
+  mutate(status_ip = rep("incorrectPL", 208), .after = "incorrectPL") %>% 
+  mutate(status_ms = rep("incorrectMS", 208), .after = "incorrectMS")
+ 
+    
+  
+  
+    lll <- ll %>% 
+      unnest(correct) %>% 
+      unnest(incorrectPL) %>% 
+      unnest(incorrectMS)
+
+  ll  
+
+  unite(status, correct, incorrectPL, incorrectMS)
+  lll
+  
+  
+  filter(Level == "low-adv") 
+    
+# Instance of incorrect use with plural nouns
+LI_incorrectPL <- low_int$annotTXT %>% 
+  str_unique() %>% 
+  str_remove_all("\\b../NN") %>% 
+  str_remove_all("a/DT\\sfew/JJ\\sbuses/NNS") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
+  unlist()
+str_unique(LI_incorrectPL)
+
+# instances of incorrect use with mass nouns
+LI_incorrectMS <- low_int$annotTXT %>% 
+  str_unique() %>% 
+  str_remove_all("\\b../NN") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM") %>% 
+```
 
 
 POS tagging the data frames.
@@ -270,32 +457,7 @@ lowint %>%
 
 
 
-a list of mass nouns:
-```{r}
-massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
-  "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
-  "bravery/NNM", "chess/NNM", "clay/NNM", "clothing/NNM", "coal/NNM", "compliance/NNM",
-  "comprehension/NNM", "confusion/NNM", "consciousness/NNM", "cream/NNM", "darkness/NNM",
-  "diligence/NNM", "dust/NNM", "education/NNM", "empathy/NNM", "enthusiasm/NNM", "envy/NNM",
-  "equality/NNM", "equipment/NNM", "evidence/NNM", "feedback/NNM", "fitness/NNM", "flattery/NNM",
-  "foliage/NNM", "fun/NNM", "furniture/NNM", "garbage/NNM", "gold/NNM", "gossip/NNM",
-  "grammar/NNM", "gratitude/NNM", "gravel/NNM", "guilt/NNM", "happiness/NNM", "hardware/NNM",
-  "hate/NNM", "hay/NNM", "health/NNM", "heat/NNM", "help/NNM", "hesitation/NNM", "homework/NNM",
-  "honesty/NNM", "honor/NNM", "hospitality/NNM", "hostility/NNM", "humanity/NNM", "humility/NNM",
-  "ice/NNM", "immortality/NNM", "independence/NNM", "information/NNM", "integrity/NNM",
-  "intimidation/NNM", "jargon/NNM", "jealousy/NNM", "jewelry/NNM", "justice/NNM", "knowledge/NNM",
-  "literacy/NNM", "logic/NNM", "luck/NNM", "lumber/NNM", "luggage/NNM", "mail/NNM", "management/NNM",
-  "merchandise/NNM", "milk/NNM", "morale/NNM", "mud/NNM", "music/NNM", "nonsense/NNM", "oppression/NNM",
-  "optimism/NNM", "oxygen/NNM", "participation/NNM", "pay/NNM", "peace/NNM", "perseverance/NNM",
-  "pessimism/NNM", "pneumonia/NNM", "poetry/NNM", "police/NNM", "pride/NNM", "privacy/NNM",
-  "propaganda/NNM", "public/NNM", "punctuation/NNM", "recovery/NNM", "rice/NNM", "rust/NNM",
-  "satisfaction/NNM", "shame/NNM", "sheep/NNM", "slang/NNM", "software/NNM", "spaghetti/NNM",
-  "stamina/NNM", "starvation/NNM", "steam/NNM", "steel/NNM", "stuff/NNM", "support/NNM", "sweat/NNM",
-  "thunder/NNM", "timber/NNM", "toil/NNM", "traffic/NNM", "training/NNM", "trash/NNM",
-  "understanding/NNM", "valor/NNM", "vehemence/NNM", "violence/NNM", "warmth/NNM", "waste/NNM",
-  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM")
 
-```
 
 
 Now, I will annotate the texts with POS tags so I can analyze the contexts, in addition to tagging mass nouns, which the tagger does not mark.
@@ -372,15 +534,15 @@ str_unique(LI_incorrectPL)
 LI_incorrectMS <- low_int$annotTXT %>% 
   str_unique() %>% 
   str_remove_all("\\b../NN") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNC") %>% 
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM") %>% 
   unlist()
 str_unique(LI_incorrectMS)
 
 
 # I created a pattern to exclude so that I can focus on cases where indefinite articles were not used. 
 
-pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?(\\w+|someone|something|somewhere|everything|everyone)/NN\\s"
-patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|pollution|experience|oil|bread|pasta|hair|football|soccer|worhis|cheese|english|forget|shopping|Weam|childhood)/NN\\s"
+pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?(\\w+|someone|something|somewhere|everything|everyone)/NN\\s"
+pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|pollution|experience|oil|bread|pasta|hair|football|soccer|worhis|cheese|english|forget|shopping|Weam|childhood)/NN\\s"
 
 
 # These are all the contexts that don't fit the requirement  
@@ -393,15 +555,49 @@ LI_null <- low_int$annotTXT %>%
   str_unique() %>% 
   str_remove_all("\\b../NN\\s") %>% 
   str_remove_all("\\b./NN\\s") %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
+  str_split(pattern1) %>%
+  str_split(pattern2) %>% 
   str_remove_all("um/NN") %>%
   str_remove_all(nofit) %>% 
   str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
   unlist()
 str_unique(LI_null)  
   str_subset("are/VBP")
+  LI_null
+  str_remove_all(nofit) %>% 
+    
+    
+    c( "because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN ", "it/PRP s/VBZ good/JJ transportation/NN ", "people/NNS use/VBP car/NN "                   "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN ", "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN ", "we/PRP have/VBP tomato/NN ", "is/VBZ egg/VBG with/IN cheese/NN ", "which/WDT is/VBZ oil/NN wil/NN ", "we/PRP put/VBD it/PRP oil/NN ", "is/VBZ is/VBZ little/JJ bit/NN ", "is/VBZ is/VBZ little/JJ bit/NN ", "food/NNCC was/VBD s/POS cheese/NN ", "is/VBZ made/VBN from/IN bread/NN ", "in/IN cutting/VBG cheese/NN ", "he/PRP is/VBZ studying/VBG english/NN ", "child/NN was/VBD um/JJ pasta/NN ", "I/PRP want/VBP eat/JJ pasta/NN ", "they/PRP have/VBP good/JJ economy/NN ", "I/PRP was/VBD child/NN ", "ah/RB hes/VBZ old/JJ friend/NN ", "she/PRP has/VBZ black/JJ hair/NN ", "it/PRP was/VBD normal/JJ day/NN ", "he/PRP has/VBZ sense/NN ", "usually/RB go/VBP in/IN picnic/NN ", "this/DT is/VBZ significant/JJ day/NN ", "he/PRP was/VBD wants/VBZ device/NN ", "I/PRP want/VBP device/NN ", "we/PRP played/VBD soccer/NN "                 "female/JJ played/VBN soccer/NN "             
+ "was/VBD playing/VBG playing/VBG football/NN " "you/PRP played/VBD football/NN "              "I/PRP played/VBD football/NN "               
+ "it/PRP s/VBZ first/JJ time/NN "               "I/PRP was/VBD child/NN "                      "that/WDT was/VBD abnormal/JJ thing/NN "      
+ "this/DT is/VBZ bad/JJ surprise/NN "           "I/PRP went/VBD to/IN university/NN "          "she/PRP have/VBP similar/JJ way/NN "         
+ "it/PRP was/VBD normal/JJ day/NN "             "we/PRP spend/VBP great/JJ time/NN "           "we/PRP played/VBD soccer/NN moradvtem/NN "   
+ "we/PRP went/VBD to/IN market/NN "             "Ali/NNP is/VBZ good/JJ friend/NN "            "Ali/NNP is/VBZ good/JJ friend/NN "           
+ "he/PRP has/VBZ requality/NN quality/NN "      "I/PRP saw/VBD snake/NN "                      "I/PRP saw/VBD snake/NN "                     
+ "I/PRP saw/VBD snake/NN worbut/NN "            "I/PRP saw/VBD snake/NN "                      "I/PRP saw/VBD fn/JJ snake/NN "               
+ "I/PRP saw/VBD fn/JJ snake/NN " )
   
+  
+  c("because/IN hes/VBZ intelligent/JJ man/NN ",    "people/NNS use/VBP taxi/NN " ,                 "it/PRP s/VBZ good/JJ transportation/NN " ,    
+  "people/NNS use/VBP car/NN " ,                  "he/PRP was/VBD child/NN " ,                    "he/PRP was/VBD child/NN " ,                   
+  "he/PRP was/VBD child/NN " ,                    "he/PRP was/VBD child/NN "  ,                   "he/PRP has/VBZ hes/NNS challenge/NN ",        
+ "and/CC need/VBP cup/NN " ,                     "I/PRP take/VBP assist/NN ",                    "there/EX is/VBZ fewer/JJR pollution/NN " ,    
+ "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
+ "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
+ "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
+ "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
+ "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
+ "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
+ "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
+ "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
+ "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
+ "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
+ "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
+ "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
+ "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
+ "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
+ "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
+ "I/PRP saw/VBD fn/JJ snake/NN " )
 
 ```
 
@@ -462,7 +658,7 @@ str_unique(HI_null)
 
 
 
-# it was easier and faster for the high-int to pick out the suitable contexts rather than the ill fitted ones because of the large number of contributions in this level
+# it was easier and faster for the high-int to pick out the appropriate contexts rather than the ill-fitted ones because of the large number of contributions in this level
 
 HI_null <- c("that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ") 
 
@@ -644,7 +840,7 @@ articles <- readRDS("data/articles_final.csv")
 For this project the main goal is to see how many times the participants used articles, correctly or incorrectly, vs omitted them from obligatory contexts. To this end, a count of instances will be used. Some more work needs to be done to ensure all the examples included in each category is appropriate, but the analysis goal will remain the same for now.
 
 ```{r}
-articles  
+articles  %>% 
   filter(Level == "low-adv") %>% 
   count(Use)
   
