@@ -1,5 +1,16 @@
+Corpus based analysis of indefinite article use by Saudi ESL learners:
+evidence from spoken data
+================
+Abdulmajeed Alharbi
+17 Dec 2024
 
-true
+- [Data pipeline](#data-pipeline)
+  - [Filtering participants](#filtering-participants)
+  - [Extracting variables for the
+    data](#extracting-variables-for-the-data)
+  - [Tagging the Transcripts](#tagging-the-transcripts)
+  - [Extracting Tokens](#extracting-tokens)
+  - [Analysis](#analysis)
 
 # Data pipeline
 
@@ -78,220 +89,8 @@ max <- map_int(lines, length) %>% max()
 evenlines <- map(lines, ~c(.x, rep(NA, max - length(.x))))
 
 # now that all the elements have even number of lines, I can put it in a tibble to use slice to remove lines I don't want. 
-tibblelines <- as_tibble(evenlines, .name_repair = "unique")
-```
+tibblelines <- as.data.frame(evenlines)
 
-    ## New names:
-    ## • `` -> `...1`
-    ## • `` -> `...2`
-    ## • `` -> `...3`
-    ## • `` -> `...4`
-    ## • `` -> `...5`
-    ## • `` -> `...6`
-    ## • `` -> `...7`
-    ## • `` -> `...8`
-    ## • `` -> `...9`
-    ## • `` -> `...10`
-    ## • `` -> `...11`
-    ## • `` -> `...12`
-    ## • `` -> `...13`
-    ## • `` -> `...14`
-    ## • `` -> `...15`
-    ## • `` -> `...16`
-    ## • `` -> `...17`
-    ## • `` -> `...18`
-    ## • `` -> `...19`
-    ## • `` -> `...20`
-    ## • `` -> `...21`
-    ## • `` -> `...22`
-    ## • `` -> `...23`
-    ## • `` -> `...24`
-    ## • `` -> `...25`
-    ## • `` -> `...26`
-    ## • `` -> `...27`
-    ## • `` -> `...28`
-    ## • `` -> `...29`
-    ## • `` -> `...30`
-    ## • `` -> `...31`
-    ## • `` -> `...32`
-    ## • `` -> `...33`
-    ## • `` -> `...34`
-    ## • `` -> `...35`
-    ## • `` -> `...36`
-    ## • `` -> `...37`
-    ## • `` -> `...38`
-    ## • `` -> `...39`
-    ## • `` -> `...40`
-    ## • `` -> `...41`
-    ## • `` -> `...42`
-    ## • `` -> `...43`
-    ## • `` -> `...44`
-    ## • `` -> `...45`
-    ## • `` -> `...46`
-    ## • `` -> `...47`
-    ## • `` -> `...48`
-    ## • `` -> `...49`
-    ## • `` -> `...50`
-    ## • `` -> `...51`
-    ## • `` -> `...52`
-    ## • `` -> `...53`
-    ## • `` -> `...54`
-    ## • `` -> `...55`
-    ## • `` -> `...56`
-    ## • `` -> `...57`
-    ## • `` -> `...58`
-    ## • `` -> `...59`
-    ## • `` -> `...60`
-    ## • `` -> `...61`
-    ## • `` -> `...62`
-    ## • `` -> `...63`
-    ## • `` -> `...64`
-    ## • `` -> `...65`
-    ## • `` -> `...66`
-    ## • `` -> `...67`
-    ## • `` -> `...68`
-    ## • `` -> `...69`
-    ## • `` -> `...70`
-    ## • `` -> `...71`
-    ## • `` -> `...72`
-    ## • `` -> `...73`
-    ## • `` -> `...74`
-    ## • `` -> `...75`
-    ## • `` -> `...76`
-    ## • `` -> `...77`
-    ## • `` -> `...78`
-    ## • `` -> `...79`
-    ## • `` -> `...80`
-    ## • `` -> `...81`
-    ## • `` -> `...82`
-    ## • `` -> `...83`
-    ## • `` -> `...84`
-    ## • `` -> `...85`
-    ## • `` -> `...86`
-    ## • `` -> `...87`
-    ## • `` -> `...88`
-    ## • `` -> `...89`
-    ## • `` -> `...90`
-    ## • `` -> `...91`
-    ## • `` -> `...92`
-    ## • `` -> `...93`
-    ## • `` -> `...94`
-    ## • `` -> `...95`
-    ## • `` -> `...96`
-    ## • `` -> `...97`
-    ## • `` -> `...98`
-    ## • `` -> `...99`
-    ## • `` -> `...100`
-    ## • `` -> `...101`
-    ## • `` -> `...102`
-    ## • `` -> `...103`
-    ## • `` -> `...104`
-    ## • `` -> `...105`
-    ## • `` -> `...106`
-    ## • `` -> `...107`
-    ## • `` -> `...108`
-    ## • `` -> `...109`
-    ## • `` -> `...110`
-    ## • `` -> `...111`
-    ## • `` -> `...112`
-    ## • `` -> `...113`
-    ## • `` -> `...114`
-    ## • `` -> `...115`
-    ## • `` -> `...116`
-    ## • `` -> `...117`
-    ## • `` -> `...118`
-    ## • `` -> `...119`
-    ## • `` -> `...120`
-    ## • `` -> `...121`
-    ## • `` -> `...122`
-    ## • `` -> `...123`
-    ## • `` -> `...124`
-    ## • `` -> `...125`
-    ## • `` -> `...126`
-    ## • `` -> `...127`
-    ## • `` -> `...128`
-    ## • `` -> `...129`
-    ## • `` -> `...130`
-    ## • `` -> `...131`
-    ## • `` -> `...132`
-    ## • `` -> `...133`
-    ## • `` -> `...134`
-    ## • `` -> `...135`
-    ## • `` -> `...136`
-    ## • `` -> `...137`
-    ## • `` -> `...138`
-    ## • `` -> `...139`
-    ## • `` -> `...140`
-    ## • `` -> `...141`
-    ## • `` -> `...142`
-    ## • `` -> `...143`
-    ## • `` -> `...144`
-    ## • `` -> `...145`
-    ## • `` -> `...146`
-    ## • `` -> `...147`
-    ## • `` -> `...148`
-    ## • `` -> `...149`
-    ## • `` -> `...150`
-    ## • `` -> `...151`
-    ## • `` -> `...152`
-    ## • `` -> `...153`
-    ## • `` -> `...154`
-    ## • `` -> `...155`
-    ## • `` -> `...156`
-    ## • `` -> `...157`
-    ## • `` -> `...158`
-    ## • `` -> `...159`
-    ## • `` -> `...160`
-    ## • `` -> `...161`
-    ## • `` -> `...162`
-    ## • `` -> `...163`
-    ## • `` -> `...164`
-    ## • `` -> `...165`
-    ## • `` -> `...166`
-    ## • `` -> `...167`
-    ## • `` -> `...168`
-    ## • `` -> `...169`
-    ## • `` -> `...170`
-    ## • `` -> `...171`
-    ## • `` -> `...172`
-    ## • `` -> `...173`
-    ## • `` -> `...174`
-    ## • `` -> `...175`
-    ## • `` -> `...176`
-    ## • `` -> `...177`
-    ## • `` -> `...178`
-    ## • `` -> `...179`
-    ## • `` -> `...180`
-    ## • `` -> `...181`
-    ## • `` -> `...182`
-    ## • `` -> `...183`
-    ## • `` -> `...184`
-    ## • `` -> `...185`
-    ## • `` -> `...186`
-    ## • `` -> `...187`
-    ## • `` -> `...188`
-    ## • `` -> `...189`
-    ## • `` -> `...190`
-    ## • `` -> `...191`
-    ## • `` -> `...192`
-    ## • `` -> `...193`
-    ## • `` -> `...194`
-    ## • `` -> `...195`
-    ## • `` -> `...196`
-    ## • `` -> `...197`
-    ## • `` -> `...198`
-    ## • `` -> `...199`
-    ## • `` -> `...200`
-    ## • `` -> `...201`
-    ## • `` -> `...202`
-    ## • `` -> `...203`
-    ## • `` -> `...204`
-    ## • `` -> `...205`
-    ## • `` -> `...206`
-    ## • `` -> `...207`
-    ## • `` -> `...208`
-
-``` r
 # this removes the first few lines. For some reason slice_tail selects from the start not the end, and slice_head selects from the end.
 removedlines <- slice_tail(tibblelines, n = -9)
 
@@ -360,8 +159,8 @@ udpipe_download_model(language = "english-ewt")
 model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
-The POS tagger does not specify mass nouns, an distinguishing them from
-singular count nous is important for the analysis. Thus a list of mass
+The POS tagger does not specify mass nouns, and distinguishing them from
+singular count nouns is important for the analysis. Thus a list of mass
 nouns was created to later tag the included nouns as mass:
 
 ``` r
@@ -400,6 +199,7 @@ from the mass noun list with a tag for mass nouns “NNM”.
 # this is the pattern used to retag mass nouns 
 patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
 
+
 ANNOTspeechh <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
                          mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = "") %>% str_replace_all(patternn, "\\1/NNM"))))
@@ -420,10 +220,11 @@ ANNOTspeech <- ANNOTspeechh %>%
 
 The next step is to extract the tokens of indefinite article use using
 the tagged transcripts. But first, I must address how the incorrect-null
-tokens will be extracted: The very long list of strings below includes
-all the tokens that are appropriate for incorrect-null. These were
-extracted by hand by going through the output of the code in the next
-cell because I found no better way to get the relevant tokens.
+tokens will be extracted: The very long list of strings below (line
+204-228) includes all the tokens that are appropriate for
+incorrect-null. These were extracted by hand by going through the output
+of the code in the next cell because I found no better way to get the
+relevant tokens.
 
 ``` r
 # I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
@@ -507,16 +308,16 @@ ANNOTspeech <- ANNOTspeech %>%
 ```
 
 The next step is to pivot the data longer by putting the names of the
-columns of the extracted context as ‘type’ and the contexts of article
-use into ‘context_of_use’. This is followed by renaming `incorrectNull1`
-as `incorrectNull`.
+columns of the extracted context as ‘type_of_use’ and the contexts of
+article use into ‘context_of_use’. This is followed by renaming
+`incorrectNull1` as `incorrectNull`.
 
 ``` r
 ANNOTspeech <- ANNOTspeech %>% 
   pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "type_of_use", values_to = "contexts_of_use") %>% 
   unnest(contexts_of_use) %>% distinct()
 
-# renaming incorrectNull1 with incorrectNull 
+# renaming incorrectNull1 and incorrectNull as incorrect-null. The same is done for incorrectPL and incorrectMS.
 ANNOTspeech$type_of_use<- ANNOTspeech$type_of_use %>% 
   str_replace_all("incorrectNull1", "incorrect-null") %>% 
   str_replace_all("incorrectNull", "incorrect-null") %>% 
@@ -547,7 +348,7 @@ ANNOTspeech %>%
 
 ![](Data_pipeline_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
-for further clarity
+the frequency in a table form for further clarity.
 
 ``` r
 table(ANNOTspeech$Level, ANNOTspeech$type_of_use)
@@ -559,11 +360,11 @@ table(ANNOTspeech$Level, ANNOTspeech$type_of_use)
     ##   low-adv       69            5             10            6
     ##   low-int       83            5             30            6
 
-insuring that the token contributions from participants in each level
+ensuring that the token contributions from participants in each level
 are fairly even
 
 ``` r
-# insuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
+# ensuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
    ANNOTspeech %>% 
   filter(type_of_use == "correct"|type_of_use == "incorrect-null") %>% 
   count(as_factor(Level), type_of_use, ID)  %>% 
@@ -578,7 +379,7 @@ are fairly even
 ![](Data_pipeline_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ``` r
-# insuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
+# ensuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
    ANNOTspeech %>% 
   filter(type_of_use == "incorrect-PL"|type_of_use == "incorrect-MS") %>%
   count(as_factor(Level), type_of_use, ID)  %>% 

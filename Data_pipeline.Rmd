@@ -1,6 +1,11 @@
 ---
-output: github_document
-toc: TRUE
+title: "Corpus based analysis of indefinite article use by Saudi ESL learners: evidence from spoken data"
+subtitle: "Data Science for Research in Linguistics (LING 2020) Fall 2024"
+author: "Abdulmajeed Alharbi"
+date: "17 Dec 2024"
+output: 
+  github_document: 
+    toc: TRUE
 ---
 
 ```{r setup, include=FALSE}
@@ -78,7 +83,7 @@ max <- map_int(lines, length) %>% max()
 evenlines <- map(lines, ~c(.x, rep(NA, max - length(.x))))
 
 # now that all the elements have even number of lines, I can put it in a tibble to use slice to remove lines I don't want. 
-tibblelines <- as_tibble(evenlines, .name_repair = "unique")
+tibblelines <- as.data.frame(evenlines)
 
 # this removes the first few lines. For some reason slice_tail selects from the start not the end, and slice_head selects from the end.
 removedlines <- slice_tail(tibblelines, n = -9)
@@ -125,7 +130,7 @@ model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
 
-The POS tagger does not specify mass nouns, an distinguishing them from singular count nous is important for the analysis. Thus a list of mass nouns was created to later tag the included nouns as mass:
+The POS tagger does not specify mass nouns, and distinguishing them from singular count nouns is important for the analysis. Thus a list of mass nouns was created to later tag the included nouns as mass:
 ```{r}
 massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
   "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
@@ -158,6 +163,7 @@ Here, the POS tagger is run on the transcripts. This creates an output coercible
 # this is the pattern used to retag mass nouns 
 patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
 
+
 ANNOTspeechh <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
                          mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = "") %>% str_replace_all(patternn, "\\1/NNM"))))
@@ -180,7 +186,7 @@ ANNOTspeech <- ANNOTspeechh %>%
 ## Extracting Tokens 
 
 The next step is to extract the tokens of indefinite article use using the tagged transcripts. But first, I must address how the incorrect-null tokens will be extracted: 
-The very long list of strings below includes all the tokens that are appropriate for incorrect-null. These were extracted by hand by going through the output of the code in the next cell because I found no better way to get the relevant tokens.
+The very long list of strings below (line 204-228) includes all the tokens that are appropriate for incorrect-null. These were extracted by hand by going through the output of the code in the next cell because I found no better way to get the relevant tokens.
 ```{r}
 # I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
 # pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
@@ -264,13 +270,13 @@ ANNOTspeech <- ANNOTspeech %>%
 ```
 
 
-The next step is to pivot the data longer by putting the names of the columns of the extracted context as 'type' and the contexts of article use into 'context_of_use'. This is followed by renaming `incorrectNull1` as `incorrectNull`.  
+The next step is to pivot the data longer by putting the names of the columns of the extracted context as 'type_of_use' and the contexts of article use into 'context_of_use'. This is followed by renaming `incorrectNull1` as `incorrectNull`.  
 ```{r}
 ANNOTspeech <- ANNOTspeech %>% 
   pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "type_of_use", values_to = "contexts_of_use") %>% 
   unnest(contexts_of_use) %>% distinct()
 
-# renaming incorrectNull1 with incorrectNull 
+# renaming incorrectNull1 and incorrectNull as incorrect-null. The same is done for incorrectPL and incorrectMS.
 ANNOTspeech$type_of_use<- ANNOTspeech$type_of_use %>% 
   str_replace_all("incorrectNull1", "incorrect-null") %>% 
   str_replace_all("incorrectNull", "incorrect-null") %>% 
@@ -297,15 +303,16 @@ ANNOTspeech %>%
   labs(x = "Level", y = "Frequency")
 ```
 
-for further clarity
+
+the frequency in a table form for further clarity.
 ```{r}
 table(ANNOTspeech$Level, ANNOTspeech$type_of_use)
 ```
 
 
-insuring that the token contributions from participants in each level are fairly even
+ensuring that the token contributions from participants in each level are fairly even
 ```{r}
-# insuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
+# ensuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
    ANNOTspeech %>% 
   filter(type_of_use == "correct"|type_of_use == "incorrect-null") %>% 
   count(as_factor(Level), type_of_use, ID)  %>% 
@@ -317,7 +324,7 @@ insuring that the token contributions from participants in each level are fairly
     labs(title = "Type of use per participant", y = "Frequency")
      
 
-# insuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
+# ensuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
    ANNOTspeech %>% 
   filter(type_of_use == "incorrect-PL"|type_of_use == "incorrect-MS") %>%
   count(as_factor(Level), type_of_use, ID)  %>% 
