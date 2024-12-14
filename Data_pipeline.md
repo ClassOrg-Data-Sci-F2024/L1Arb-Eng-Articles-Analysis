@@ -1,9 +1,17 @@
 
+true
+
 # Data pipeline
 
 - *Existing*
 
-First, I need to make sure all the files are of L1 Arabic speakers.
+## Filtering participants
+
+First, I need to make sure all the files are of L1 Arabic speakers. I am
+not allowed to share the key referred to below, but I left these cells
+since they are part of the process. The fist data frame that includes
+id, levels, and transcripts has been saved and read into the object
+`speechdf` on line 105. Feel free to jump ahead.
 
 ``` r
 # read in the key which includes speakers' ids and L1s
@@ -38,6 +46,8 @@ onlyarb <- str_flatten(onlyarb, "|")
 # filter out non-Arabic L1s
 speech <- str_subset(speech, onlyarb)
 ```
+
+## Extracting variables for the data
 
 I need to create a variable for participants’ ids, and a variable for
 their level.
@@ -285,52 +295,34 @@ tibblelines <- as_tibble(evenlines, .name_repair = "unique")
 # this removes the first few lines. For some reason slice_tail selects from the start not the end, and slice_head selects from the end.
 removedlines <- slice_tail(tibblelines, n = -9)
 
+
 # save the sliced transcripts as a list in an object to put them in a tibble with ids and levels later.
-removedlines <- as.list(removedlines) 
+removedlines <- as.list(removedlines)
 ```
 
-creating the data frame
+cleaning the transcripts from CHAT formatting
 
 ``` r
-# create the data frame/tibble with ids and sliced transcripts
-speechdf <- tibble(ID = ids, Level = levels, Transcript = removedlines)
-```
-
-Cleaning the texts from `.cha` formatting.
-
-``` r
-speechdf$Transcript <- speechdf$Transcript %>% 
-  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
+clean <- removedlines %>% 
+   str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^.|^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
   str_replace_all("_", " ")
 ```
 
     ## Warning in stri_replace_all_regex(string, pattern,
     ## fix_replacement(replacement), : argument is not an atomic vector; coercing
 
-``` r
-head(speechdf$Transcript)
-```
-
-    ## [1] "descib my topic is describe your favorite meal from your childhood   we know as s a young  young child my favorite food was or or  favorite meal was hamburgers   I like hamburgers because its usually the fast food that I ate all the time   so the ingodu ingredients it was two pieces of bread a beef a lettuce tomatoes an onion and a little bit of ketchup and mayonnaise   hamburgers for me its the special  mea special main dish   so usually my mum  my mum advise me s n that she said to me that its very bad and  and not good for health   but usually she made it for me in the home hamburger as at any restaurant that they made hamburger that I like   ham  its  eating fast food its  its a bad benefit because its  its bad for health and  and bad for health   and its will make for you some trouble in your body   so my  so its  ver its  signi its very significant to  to  to stop eating this kind of food   and my father try to assist me to stop eating this food   many restaurant they are available to  to  to make any kind of hamburgers   so Im trying to  to  to stop eating this fas fast food so e                                                "                                                                                                                                                                                               
-    ## [2] "a the topic is transportation   in this world a lot of countries have a different economies   so today I want to talk about the tra transportation between my country and Pittsburgh   Pittsburgh had a good way to pick up people by buses   so there is a lot of available buses in a specific time   its  and  and they are capable to pick up people from anywhere   so in my country we dont have a lot of buses   because m its maybe  we have  no plans  to  to make  a in my country we dont have a good plan to  to  to help a company that consist buses   so  so my country should create or process a good plan to had  to have a lot of buses to pick up people and  and  and flourish in this na                                                    "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-    ## [3] "okay  the topic is someone I admire   okay  Ill talk today about my father   my father is a  mam my father born in Jeddah Saudi Arabia   and I admire with my father because hes intelligent man and polite man   and he like his family and his children   and he like his job   he  actually hes the founder of his company   so my father treat me in a good way   and he wish for me everything good   and I wish in the future that someday that I can became same like my father   my father live in the Riyadh o with our family  3 syllables   and  and my father gave me everything that I want   because that reason I like him   and he always assist me and support me   and he always cont cont contribute with po poor people   and my father hes a significan significant person in my life   and he  he teach me everything in appropriate way   and in the future I want be same my father because hes everything in my life and without my father Im nothing   so I wish him all the best   and I wish him longer age and everything so thank you                                         "                                                                                                                                                                                                                                                                                  
-    ## [4] "the topic is um talking about a problem in the world that concerned me   actually  theralot there is a lot  actually there is a lot of problem that concerns me and concerns everybody   but I  wan today I want talk on one specific problem which is in this world there is a lot of cars   cars causes pollution in the air   ah specifically the exhaust of the car exhaust a lot of chemicals or embalms in the in the  in the airs   so  so Im looking forward that if they can solve this problem   they can solve it by  by they sell less cars in the world that they put a specific amount for people that they can buy a car   for example a lot of Saudis country or any country just one family they has more than six or seven cars   that cause a problem  that causing problem with the with the  with the pollution   so  so obviously that will  will  wil it will  it  il obviously it will have result by  its  by pollution   and there is  theres a lot of aspects that can affect the people or affect the air   so Im looking forward for solve this problem   there is aks a approximate  each house in any country approximately f ten or fifteen cars for the  for just one family   so  so tha they  they must decide a goal to achieve it to solve this problem   they hafta solve this problem as soon as they can                                              "
-    ## [5] "the topic is talk about something I regret that I have done   first yesterday the teacher was dispu distributing the  the worksheet or or the  or the exam paper  eh paper test and actually I didnt study   and  and while Im facing the the the  the exam I  I didnt know how to answer   so  so the result was that I failed in the exam   so if  if I studied good I  I shouldnt fail in the in  th in the exam   so I should  have  um what I should have done differently I should have to study hard and worked hard to pass this exam   and  um and if I study  if I studied good and if I work hard I would not fail in my exam   I will get full mark   and  um I  will  and I will pass the exam thank you   so when I  there is some process I have to follow for studying to pass any exam to get a full mark                                                   "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-    ## [6] "um Im going talk about violence in the tv show   m my opinion I  th violence on tv shouldnt be banned   ah because these days tv generate a lot of movies involve va violence I  killing everything   even  even though cartoons they also generate violence   so I think k our ch children get useta it and also the adults   so its  it is  are not big deal for children or any kind of age   um of course watching tv is very crutral crucial for  for any person whether in its including a violence or not including any violence   um um so tv used  they sometimes glorify that there is two kind of cartoons or two kinds of shows that for the adults and for the children   so also children in the  in the  in the between age  between age they  they know how to distinguish between these k the cartoon and also movies   and also the families teach  teach them how to know the difference between it   so in my opinion it shouldnt ish  it shouldnt be banned because we needta watch tv and  thats all                                                  "
-
-I am going to create 3 data frames to analyze the article use for each
-level
+creating the data frame with participants’ IDs, proficiency level, and
+the transcripts of their production
 
 ``` r
-lowint <- speechdf %>% 
-  filter(Level == "low-int")
+# create the data frame/tibble with ids, levels, and transcripts
+speechdf <- tibble(ID = ids, Level = levels, Transcript = clean)
 
-highint <- speechdf %>% 
-  filter(Level == "high-int")
 
-lowadv <- speechdf %>% 
-  filter(Level == "low-adv")
+speechdf <- readRDS("data/speechdf.csv")
 ```
+
+## Tagging the Transcripts
 
 I will POS tag the data frames to make analyzing the contexts of article
 use possible
@@ -368,388 +360,277 @@ udpipe_download_model(language = "english-ewt")
 model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
-<!-- instead of creating three different df create a column with the tagged dfs -->
-<!-- ```{r} -->
-<!-- ANNOTspeech <- speechdf %>% -->
-<!--   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble)) -->
-<!-- low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))  -->
-<!-- # saved the file so I don't have to run udpipe_annotate() every time -->
-<!-- saveRDS(ANNOTspeech, "articles-analysis.csv") -->
-<!-- ANNOTspeech <- readRDS("articles-analysis.csv") -->
-<!-- head(ANNOTspeech$annoTXT, 1) -->
-<!-- ``` -->
-
-POS tagging the data frames.
+The POS tagger does not specify mass nouns, an distinguishing them from
+singular count nous is important for the analysis. Thus a list of mass
+nouns was created to later tag the included nouns as mass:
 
 ``` r
-# low_int <- udpipe_annotate(model, x = lowint$Transcript) %>% 
-#   as_tibble()
+massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
+  "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
+  "bravery/NNM", "chess/NNM", "clay/NNM", "clothing/NNM", "coal/NNM", "compliance/NNM",
+  "comprehension/NNM", "confusion/NNM", "consciousness/NNM", "cream/NNM", "darkness/NNM",
+  "diligence/NNM", "dust/NNM", "education/NNM", "empathy/NNM", "enthusiasm/NNM", "envy/NNM",
+  "equality/NNM", "equipment/NNM", "evidence/NNM", "feedback/NNM", "fitness/NNM", "flattery/NNM",
+  "foliage/NNM", "fun/NNM", "furniture/NNM", "garbage/NNM", "gold/NNM", "gossip/NNM",
+  "grammar/NNM", "gratitude/NNM", "gravel/NNM", "guilt/NNM", "happiness/NNM", "hardware/NNM",
+  "hate/NNM", "hay/NNM", "health/NNM", "heat/NNM", "help/NNM", "hesitation/NNM", "homework/NNM",
+  "honesty/NNM", "honor/NNM", "hospitality/NNM", "hostility/NNM", "humanity/NNM", "humility/NNM",
+  "ice/NNM", "immortality/NNM", "independence/NNM", "information/NNM", "integrity/NNM",
+  "intimidation/NNM", "jargon/NNM", "jealousy/NNM", "jewelry/NNM", "justice/NNM", "knowledge/NNM",
+  "literacy/NNM", "logic/NNM", "luck/NNM", "lumber/NNM", "luggage/NNM", "mail/NNM", "management/NNM",
+  "merchandise/NNM", "milk/NNM", "morale/NNM", "mud/NNM", "music/NNM", "nonsense/NNM", "oppression/NNM",
+  "optimism/NNM", "oxygen/NNM", "participation/NNM", "pay/NNM", "peace/NNM", "perseverance/NNM",
+  "pessimism/NNM", "pneumonia/NNM", "poetry/NNM", "police/NNM", "pride/NNM", "privacy/NNM",
+  "propaganda/NNM", "public/NNM", "punctuation/NNM", "recovery/NNM", "rice/NNM", "rust/NNM",
+  "satisfaction/NNM", "shame/NNM", "sheep/NNM", "slang/NNM", "software/NNM", "spaghetti/NNM",
+  "stamina/NNM", "starvation/NNM", "steam/NNM", "steel/NNM", "stuff/NNM", "support/NNM", "sweat/NNM",
+  "thunder/NNM", "timber/NNM", "toil/NNM", "traffic/NNM", "training/NNM", "trash/NNM",
+  "understanding/NNM", "valor/NNM", "vehemence/NNM", "violence/NNM", "warmth/NNM", "waste/NNM",
+  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM", "money/NNM", "pollution/NNM", "oil/NNM", "bread/NNM", "pasta/NNM", "hair/NNM", "football/NNM", "soccer/NNM", "cheese/NNM", "english/NNM"  )
 ```
 
+Here, the POS tagger is run on the transcripts. This creates an output
+coercible into a tibble format that includes tokens and POS. This is put
+in new column that that includes a tibble for each transcript. The
+transcripts are then essentially recreated but with each token tagged.
+The last part of the code replaces the POS tag of the matching words
+from the mass noun list with a tag for mass nouns “NNM”.
+
 ``` r
-# high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
-#   as_tibble()
+# this is the pattern used to retag mass nouns 
+patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
+
+ANNOTspeechh <- speechdf %>%
+  mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
+                         mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = "") %>% str_replace_all(patternn, "\\1/NNM"))))
 ```
 
+Now that I have recreated the transcripts with POS tags, I will unnest
+the columns from the tibbles and only keep the tagged transcripts from
+that output.
+
 ``` r
-# low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
-#   as_tibble()
+ANNOTspeech <- ANNOTspeechh %>% 
+  unnest(annoTXT) %>% 
+  select(ID, Level, Transcript, annotTXT) %>% 
+  distinct()
 ```
 
-a list of common nouns:
+## Extracting Tokens
+
+The next step is to extract the tokens of indefinite article use using
+the tagged transcripts. But first, I must address how the incorrect-null
+tokens will be extracted: The very long list of strings below includes
+all the tokens that are appropriate for incorrect-null. These were
+extracted by hand by going through the output of the code in the next
+cell because I found no better way to get the relevant tokens.
 
 ``` r
-commonNN <- c("admiration/NNC", "advice/NNC", "air/NNC", "anger/NNC", "anticipation/NNC", 
-              "assistance/NNC", "awareness/NNC", "bacon/NNC", "baggage/NNC", "blood/NNC", 
-              "bravery/NNC", "chess/NNC", "clay/NNC", "clothing/NNC", "coal/NNC", "compliance/NNC", 
-              "comprehension/NNC", "confusion/NNC", "consciousness/NNC", "cream/NNC", "darkness/NNC", 
-              "diligence/NNC", "dust/NNC", "education/NNC", "empathy/NNC", "enthusiasm/NNC", "envy/NNC", 
-              "equality/NNC", "equipment/NNC", "evidence/NNC", "feedback/NNC", "fitness/NNC", "flattery/NNC", 
-              "foliage/NNC", "fun/NNC", "furniture/NNC", "garbage/NNC", "gold/NNC", "gossip/NNC", 
-              "grammar/NNC", "gratitude/NNC", "gravel/NNC", "guilt/NNC", "happiness/NNC", "hardware/NNC", 
-              "hate/NNC", "hay/NNC", "health/NNC", "heat/NNC", "help/NNC", "hesitation/NNC", "homework/NNC", 
-              "honesty/NNC", "honor/NNC", "hospitality/NNC", "hostility/NNC", "humanity/NNC", "humility/NNC", 
-              "ice/NNC", "immortality/NNC", "independence/NNC", "information/NNC", "integrity/NNC", 
-              "intimidation/NNC", "jargon/NNC", "jealousy/NNC", "jewelry/NNC", "justice/NNC", "knowledge/NNC", 
-              "literacy/NNC", "logic/NNC", "luck/NNC", "lumber/NNC", "luggage/NNC", "mail/NNC", "management/NNC", 
-              "merchandise/NNC", "milk/NNC", "morale/NNC", "mud/NNC", "music/NNC", "nonsense/NNC", "oppression/NNC", 
-              "optimism/NNC", "oxygen/NNC", "participation/NNC", "pay/NNC", "peace/NNC", "perseverance/NNC", 
-              "pessimism/NNC", "pneumonia/NNC", "poetry/NNC", "police/NNC", "pride/NNC", "privacy/NNC", 
-              "propaganda/NNC", "public/NNC", "punctuation/NNC", "recovery/NNC", "rice/NNC", "rust/NNC", 
-              "satisfaction/NNC", "shame/NNC", "sheep/NNC", "slang/NNC", "software/NNC", "spaghetti/NNC", 
-              "stamina/NNC", "starvation/NNC", "steam/NNC", "steel/NNC", "stuff/NNC", "support/NNC", "sweat/NNC", 
-              "thunder/NNC", "timber/NNC", "toil/NNC", "traffic/NNC", "training/NNC", "trash/NNC", 
-              "understanding/NNC", "valor/NNC", "vehemence/NNC", "violence/NNC", "warmth/NNC", "waste/NNC", 
-              "weather/NNC", "wheat/NNC", "wisdom/NNC", "work/NNC", "food/NNC", "ham/NNC", "beef/NNC", "lettuce/NNC", "tv/NNC")
+# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
+# pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
+# pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|experience|worhis|forget|shopping|Weam|childhood)/NN\\s"
+# ann <- ANNOTspeech %>% 
+#   filter(Level == "low-adv") 
+# ann$annotTXT %>%
+#   str_split(pattern1) %>%
+#   str_split(pattern2) %>% 
+#   str_split("are/VBP") %>% 
+#   str_remove_all("\\b../NN\\s") %>% 
+#   str_remove_all("\\b./NN\\s|\\bwor") %>% 
+#   str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+#   str_remove_all("um/NN|um/JJ") %>%
+# str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s")
 ```
 
-Now, I will annotate the texts with POS tags so I can analyze the
-contexts in addition to tagging mass nouns, which the tagger does not
-mark.
+These are split into two objects because R has a limit for how many
+strings can be used in `str_c()`.
 
 ``` r
-#I'll annotate the texts with pos
-# low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")) 
+noart <- str_c("because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN " , "it/PRP s/VBZ good/JJ transportation/NN " ,    
+  "people/NNS use/VBP car/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN "  , "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN " , "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN " ,    
+ "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
+ "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
+ "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
+ "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
+ "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
+ "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
+ "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
+ "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
+ "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
+ "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
+ "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
+ "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
+ "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
+ "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
+ "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
+ "I/PRP saw/VBD fn/JJ snake/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", sep = "|") %>% str_replace_all(" ", "\\\\s")
 
-# this pattern was created to replace /NN with /NNC for mass nouns  
-patternn <- paste0("\\b(", paste(sub("/NNC", "", commonNN), collapse = "|"), ")\\b/NN")
-
-# Replace /NN with /NNC to tag mass nouns
-# low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNC")
+ noart2<- str_c("country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "which/WDT is/VBZ virus/NN antivirus/JJ program/NN ", "by/IN using/VBG protect/JJ protect/NN program/NN ", "of/IN living/VBG in/IN computer/NN society/NN ", "with/IN swimming/VBG pool/NN ", "of/IN using/VBG computer/NN ", "people/NNS have/VBP real/JJ problem/NN ", "it/PRP s/VBZ good/JJ thing/NN ", "they/PRP live/VBP unhealthy/JJ life/NN ", "that/DT is/VBZ that/IN is/VBZ risk/NN ", "they/PRP use/VBP firewall/NN ", "they/PRP use/VBP new/JJ way/NN ", sep = "|" ) %>% 
+  str_replace_all(" ", "\\\\s")
 ```
 
-``` r
-# high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
-# Replace /NN with /NNC to tag mass nouns
-# high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
-```
+Here, the tokens of article use are extracted. `incorrectNull` and
+`incorrectNull1` extract the same contexts, but since the pattern is
+split into two objects I extracted them separately first.
 
 ``` r
- # low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
-
- # low_adv$annotTXT <- str_replace_all(low_adv$annotTXT, patternn, "\\1/NNC")
-```
-
-I have saved each tagged df so that I don’t have to run the tagging
-operations every time. Below these chunks, I have set the code for
-loading. Feel free to use that to skip running the tagger.
-
-``` r
-# saveRDS(low_int, "data/lowint.csv")
-# saveRDS(high_int, "data/highint.csv")
-# saveRDS(low_adv, "data/lowadv.csv")
-```
-
-instead of tagging every time, i made these tagged dfs.
-
-``` r
-low_int <- readRDS("data/lowint.csv")
-high_int <- readRDS("data/highint.csv")
-low_adv <- readRDS("data/lowadv.csv")
-```
-
-Here, I will attempt to extract the contexts of article use for
-low-intermediate, high-intermediate, and low-advanced.
-
-Low-intermediate
-
-``` r
-LI_correct <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-
-
-
-# I still need to find a list for common mass nouns because it is incorrect to a/an with mass nouns also, but the tagger does not tag them
-LI_incorrect <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
-  unlist()
-
-
-
-# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used. 
-
-pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?(\\w+|someone|something|somewhere|everything|everyone)/NN\\s"
-patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anthing)/NN\\s"
-
-# pulls out instances where a/an should have been used.
-LI_null <- low_int$annotTXT %>%
-  str_unique() %>% 
+ANNOTspeech <- ANNOTspeech %>% 
+  mutate(correct = ANNOTspeech$annotTXT %>% 
   str_remove_all("\\b../NN\\s") %>% 
   str_remove_all("\\b./NN\\s") %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
-  str_remove_all("um/NN") %>%
-  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-```
-
-    ## Warning in stri_split_regex(string, pattern, n = n, simplify = simplify, :
-    ## argument is not an atomic vector; coercing
-
-    ## Warning in stri_replace_all_regex(string, pattern,
-    ## fix_replacement(replacement), : argument is not an atomic vector; coercing
-
-High-intermediate
-
-``` r
-HI_correct <- high_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-
-
-
-HI_incorrect<- high_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
-  unlist()
-
-
-
-pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
-patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody)/NN\\s"
-
-HI_null <- high_int$annotTXT %>%
-  str_unique() %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") %>% 
-  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
-  unlist()
-```
-
-    ## Warning in stri_split_regex(string, pattern, n = n, simplify = simplify, :
-    ## argument is not an atomic vector; coercing
-
-    ## Warning in stri_replace_all_regex(string, pattern,
-    ## fix_replacement(replacement), : argument is not an atomic vector; coercing
-
-Low-advanced
-
-``` r
-LA_correct <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-
-
-
-LA_incorrect <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/(NNS|NNC)") %>% 
-  unlist()
-
+  str_remove_all("a/DT\\screating/NN\\s|a/DT\\smam/NN\\s|a/DT\\sfewer/JJR\\sgarage/NN\\s|a/DT\\sthe/DT\\stopic/NN\\s|a/DT\\sfewer/JJR\\sparking/NN\\s|a/DT\\slot/NN") %>% 
+  str_remove_all("pollution|a/DT\\smany/JJ\\sfuture/NN|a/DT\\smissing/NN|a/DT\\sskin/NN\\scancer/NN|a/DT\\slil/NN|a/DT\\sArab/JJ\\sGulf/NN|a/DT\\sgood/JJ\\sethics/NN|a/DT\\stha/NN|an/DT\\sd/JJ\\smoreover/NN|a/DT\\swalking/NN|a/DT\\smoney/NN") %>% 
+  str_remove_all("a/DT\\senter/NN|a/DT\\skra/NN|a/DT\\smoney/NN|a/DT\\scensorshi/NN\\scen/NN|a/DT\\scompassion/NN|a/DT\\sligstory/NN\\sluxury/NN ") %>% 
+  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s"),
   
-
-LA_null <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
-  str_remove_all("\\b../NN\\s") %>% 
+  incorrectPL =  ANNOTspeech$annotTXT %>%
+  str_remove_all("\\b../NN") %>% 
   str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
-  unlist()
+  str_remove_all("a/DT\\sfew/JJ\\sbuses/NNS") %>%
+  str_remove_all("a/DT\\scouple/NN\\syears/NNS") %>% 
+  str_remove_all("a/DT\\sfew/JJ\\sscenes/NNS|a/DT\\sfew/JJ\\smovies/NNS") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS"),
+  
+  incorrectMS = ANNOTspeech$annotTXT %>%
+  str_remove_all("\\b../NN") %>% 
+  str_remove_all("\\b./NN\\s") %>% 
+  str_remove_all("a/DT\\swhole/JJ\\ssheep/NNC") %>%
+  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM"),
+  
+  incorrectNull =  ANNOTspeech$annotTXT %>%
+  str_extract_all(noart),
+ 
+  
+  incorrectNull1 =  ANNOTspeech$annotTXT %>%
+  str_extract_all(noart2))
 ```
 
-    ## Warning in stri_split_regex(string, pattern, n = n, simplify = simplify, :
-    ## argument is not an atomic vector; coercing
-
-    ## Warning in stri_replace_all_regex(string, pattern,
-    ## fix_replacement(replacement), : argument is not an atomic vector; coercing
-
-Here, I put the extracted contexts into a df and added a columns tagging
-level and use.
-
-low-intermediate
+The next step is to pivot the data longer by putting the names of the
+columns of the extracted context as ‘type’ and the contexts of article
+use into ‘context_of_use’. This is followed by renaming `incorrectNull1`
+as `incorrectNull`.
 
 ``` r
-lowint_corr <- str_unique(LI_correct) %>% 
-  as_tibble() %>% 
-rename("LI_correct" = "value") %>% 
-  mutate(status = "low-int_correct", .after = LI_correct)
-lowint_corr
+ANNOTspeech <- ANNOTspeech %>% 
+  pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "type_of_use", values_to = "contexts_of_use") %>% 
+  unnest(contexts_of_use) %>% distinct()
+
+# renaming incorrectNull1 with incorrectNull 
+ANNOTspeech$type_of_use<- ANNOTspeech$type_of_use %>% 
+  str_replace_all("incorrectNull1", "incorrect-null") %>% 
+  str_replace_all("incorrectNull", "incorrect-null") %>% 
+  str_replace_all("incorrectPL", "incorrect-PL") %>% 
+  str_replace_all("incorrectMS", "incorrect-MS")
+
+# moving the new columns to the front
+ANNOTspeech <- relocate(ANNOTspeech, type_of_use, contexts_of_use, .after = Level) 
+
+# removing any duplicate observations. 
+ANNOTspeech <- distinct(ANNOTspeech)
 ```
 
-    ## # A tibble: 68 × 2
-    ##    LI_correct                  status         
-    ##    <chr>                       <chr>          
-    ##  1 "an/DT onion/NN "           low-int_correct
-    ##  2 "a/DT little/JJ bit/NN "    low-int_correct
-    ##  3 "a/DT bad/JJ benefit/NN "   low-int_correct
-    ##  4 "a/DT the/DT topic/NN "     low-int_correct
-    ##  5 "a/DT lot/NN "              low-int_correct
-    ##  6 "a/DT good/JJ way/NN "      low-int_correct
-    ##  7 "a/DT specific/JJ time/NN " low-int_correct
-    ##  8 "a/DT good/JJ plan/NN "     low-int_correct
-    ##  9 "a/DT company/NN "          low-int_correct
-    ## 10 "a/DT mam/NN "              low-int_correct
-    ## # ℹ 58 more rows
-
-``` r
-lowint_incorr <- str_unique(LI_incorrect) %>%
-  as_tibble() %>% 
-rename("LI_incorrect" = "value") %>% 
-  mutate(status = "low-int_incorrect", .after = LI_incorrect)
-
-
-
-lowint_null <- str_unique(LI_null) %>% 
-  as_tibble() %>% 
-rename("LI_null" = "value") %>% 
-  mutate(status = "low-int_null", .after = LI_null)
-lowint_null
-```
-
-    ## # A tibble: 84 × 2
-    ##    LI_null                                     status      
-    ##    <chr>                                       <chr>       
-    ##  1 "because/IN hes/VBZ intelligent/JJ man/NN " low-int_null
-    ##  2 "I/PRP m/VBP nothing/NN "                   low-int_null
-    ##  3 "I/PRP was/VBD childhood/NN cereal/NN "     low-int_null
-    ##  4 "people/NNS use/VBP taxi/NN "               low-int_null
-    ##  5 "it/PRP s/VBZ good/JJ transportation/NN "   low-int_null
-    ##  6 "people/NNS use/VBP car/NN "                low-int_null
-    ##  7 "he/PRP was/VBD child/NN "                  low-int_null
-    ##  8 "he/PRP had/VBD many/JJ problem/NN "        low-int_null
-    ##  9 "mother/NN took/VBD care/NN "               low-int_null
-    ## 10 "he/PRP took/VBD care/NN "                  low-int_null
-    ## # ℹ 74 more rows
-
-high-intermediate
-
-``` r
-highint_corr <- str_unique(HI_correct) %>% 
-  as_tibble() %>% 
-rename("HI_correct" = "value") %>% 
-  mutate(status = "high-int_correct", .after = HI_correct) 
-highint_corr 
-```
-
-    ## # A tibble: 235 × 2
-    ##    HI_correct                    status          
-    ##    <chr>                         <chr>           
-    ##  1 "a/DT problem/NN "            high-int_correct
-    ##  2 "a/DT lot/NN "                high-int_correct
-    ##  3 "a/DT specific/JJ amount/NN " high-int_correct
-    ##  4 "a/DT car/NN "                high-int_correct
-    ##  5 "a/DT goal/NN "               high-int_correct
-    ##  6 "a/DT full/JJ mark/NN "       high-int_correct
-    ##  7 "a/DT computer/NN "           high-int_correct
-    ##  8 "a/DT good/JJ company/NN "    high-int_correct
-    ##  9 "a/DT good/JJ job/NN "        high-int_correct
-    ## 10 "a/DT lot/NN place/NN "       high-int_correct
-    ## # ℹ 225 more rows
-
-``` r
-highint_incorr <- str_unique(HI_incorrect) %>%
-  as_tibble() %>% 
-rename("HI_incorrect" = "value") %>% 
-  mutate(status = "high-int_incorrect", .after = HI_incorrect)
-
-
-highint_null <- str_unique(HI_null) %>% 
-  as_tibble() %>% 
-rename("HI_null" = "value") %>% 
-  mutate(status = "high-int_null", .after = HI_null)
-```
-
-low-advanced
-
-``` r
-lowad_corr <- str_unique(LA_correct) %>%
-  as_tibble() %>% 
-rename("LA_correct" = "value") %>% 
-  mutate(status = "low-adv_correct", .after = LA_correct)
-```
-
-``` r
-lowad_incorr <- str_unique(LA_incorrect) %>%
-  as_tibble() %>% 
-rename("LA_incorrect" = "value") %>% 
-  mutate(status = "low-adv_incorrect", .after = LA_incorrect)
-```
-
-``` r
-lowad_null <- str_unique(LA_null) %>% 
-  as_tibble() %>% 
-rename("LA_null" = "value") %>% 
-  mutate(status = "low-adv_null", .after = LA_null)
-```
-
-Creating the variables from the tibbles created above to get the “final”
-form of the data from which the analysis can be done.
-
-``` r
-Status <- c(lowint_corr$status, lowint_incorr$status, lowint_null$status, highint_corr$status, highint_incorr$status, highint_null$status, lowad_corr$status, lowad_incorr$status, lowad_null$status)
-
-Article_contexts <- c(lowint_corr$LI_correct, lowint_incorr$LI_incorrect, lowint_null$LI_null, highint_corr$HI_correct, highint_incorr$HI_incorrect,  highint_null$HI_null, lowad_corr$LA_correct, lowad_incorr$LA_incorrect,  lowad_null$LA_null)
-
-articles <- tibble(Article_contexts, Status)
-
-# separating level and correctness of use into two columns
-articles <- articles %>% 
-  separate(Status, into = c("Level", "Use"), sep = "_")
-
-
-#This is the final form of the data. For any new changes I make I'll run this again to overwrite the old version
-saveRDS(articles, "data/articles_final.csv")
-```
+## Analysis
 
 For this project the main goal is to see how many times the participants
 used articles, correctly or incorrectly, vs omitted them from obligatory
-contexts. To this end, a count of instances will be used. Some more work
-needs to be done to ensure all the examples included in each category is
-appropriate, but the analysis goal will remain the same for now.
+contexts. To this end, a count of instances will be used as well as
+visualizations.
 
 ``` r
-articles %>% 
-  count(Level, Use)
+# a plot showing the proportion of difference of each type of use per level
+ANNOTspeech %>% 
+  ggplot(aes(as_factor(Level), fill = type_of_use))+
+  geom_bar(position = "fill")+
+  labs(x = "Level", y = "Frequency")
 ```
 
-    ## # A tibble: 9 × 3
-    ##   Level    Use           n
-    ##   <chr>    <chr>     <int>
-    ## 1 high-int correct     235
-    ## 2 high-int incorrect    16
-    ## 3 high-int null        259
-    ## 4 low-adv  correct      64
-    ## 5 low-adv  incorrect    12
-    ## 6 low-adv  null         70
-    ## 7 low-int  correct      68
-    ## 8 low-int  incorrect    12
-    ## 9 low-int  null         84
+![](Data_pipeline_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+for further clarity
+
+``` r
+table(ANNOTspeech$Level, ANNOTspeech$type_of_use)
+```
+
+    ##           
+    ##            correct incorrect-MS incorrect-null incorrect-PL
+    ##   high-int     276           11             47           11
+    ##   low-adv       69            5             10            6
+    ##   low-int       83            5             30            6
+
+insuring that the token contributions from participants in each level
+are fairly even
+
+``` r
+# insuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
+   ANNOTspeech %>% 
+  filter(type_of_use == "correct"|type_of_use == "incorrect-null") %>% 
+  count(as_factor(Level), type_of_use, ID)  %>% 
+    rename(Level = "as_factor(Level)") %>% 
+    ggplot(aes(Level, n))+
+    geom_boxplot() +
+    geom_jitter()+
+    facet_wrap(~ type_of_use)+
+    labs(title = "Type of use per participant", y = "Frequency")
+```
+
+![](Data_pipeline_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+# insuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
+   ANNOTspeech %>% 
+  filter(type_of_use == "incorrect-PL"|type_of_use == "incorrect-MS") %>%
+  count(as_factor(Level), type_of_use, ID)  %>% 
+  rename(Level = "as_factor(Level)") %>%
+    ggplot(aes(Level, n))+
+    geom_boxplot() +
+    geom_jitter()+
+    facet_wrap(~ type_of_use)+
+    labs(title = "Type of use per participant", y = "Frequency")
+```
+
+![](Data_pipeline_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+
+``` r
+sessionInfo()
+```
+
+    ## R version 4.4.1 (2024-06-14 ucrt)
+    ## Platform: x86_64-w64-mingw32/x64
+    ## Running under: Windows 11 x64 (build 22631)
+    ## 
+    ## Matrix products: default
+    ## 
+    ## 
+    ## locale:
+    ## [1] LC_COLLATE=English_United States.utf8 
+    ## [2] LC_CTYPE=English_United States.utf8   
+    ## [3] LC_MONETARY=English_United States.utf8
+    ## [4] LC_NUMERIC=C                          
+    ## [5] LC_TIME=English_United States.utf8    
+    ## 
+    ## time zone: America/New_York
+    ## tzcode source: internal
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ##  [1] udpipe_0.8.11   readxl_1.4.3    lubridate_1.9.3 forcats_1.0.0  
+    ##  [5] stringr_1.5.1   dplyr_1.1.4     purrr_1.0.2     readr_2.1.5    
+    ##  [9] tidyr_1.3.1     tibble_3.2.1    ggplot2_3.5.1   tidyverse_2.0.0
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] utf8_1.2.4        generics_0.1.3    stringi_1.8.4     lattice_0.22-6   
+    ##  [5] hms_1.1.3         digest_0.6.37     magrittr_2.0.3    evaluate_0.24.0  
+    ##  [9] grid_4.4.1        timechange_0.3.0  fastmap_1.2.0     cellranger_1.1.0 
+    ## [13] Matrix_1.7-0      fansi_1.0.6       scales_1.3.0      cli_3.6.3        
+    ## [17] rlang_1.1.4       crayon_1.5.3      bit64_4.0.5       munsell_0.5.1    
+    ## [21] withr_3.0.1       yaml_2.3.10       tools_4.4.1       parallel_4.4.1   
+    ## [25] tzdb_0.4.0        colorspace_2.1-1  vctrs_0.6.5       R6_2.5.1         
+    ## [29] lifecycle_1.0.4   bit_4.0.5         vroom_1.6.5       pkgconfig_2.0.3  
+    ## [33] pillar_1.9.0      gtable_0.3.5      data.table_1.16.0 Rcpp_1.0.13      
+    ## [37] glue_1.7.0        highr_0.11        xfun_0.47         tidyselect_1.2.1 
+    ## [41] rstudioapi_0.16.0 knitr_1.48        farver_2.1.2      htmltools_0.5.8.1
+    ## [45] labeling_0.4.3    rmarkdown_2.28    compiler_4.4.1

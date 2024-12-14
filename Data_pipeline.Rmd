@@ -1,18 +1,20 @@
 ---
 output: github_document
+toc: TRUE
 ---
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(readxl)
-library(naniar)
 ```
 
 # Data pipeline
 
 -   *Existing*
 
-First, I need to make sure all the files are of L1 Arabic speakers.
+## Filtering participants
+
+First, I need to make sure all the files are of L1 Arabic speakers. I am not allowed to share the key referred to below, but I left these cells since they are part of the process. The fist data frame that includes id, levels, and transcripts has been saved and read into the object `speechdf` on line 105. Feel free to jump ahead. 
 
 ```{r}
 # read in the key which includes speakers' ids and L1s
@@ -43,7 +45,7 @@ speech <- str_subset(speech, onlyarb)
 ```
 
 
-
+## Extracting variables for the data
 
 I need to create a variable for participants' ids, and a variable for their level.
 
@@ -68,8 +70,6 @@ Before I create the data frame, I need to remove the first few lines of metadata
 ```{r}
 # read the lines 
 lines <- map(speech, read_lines)
-head(lines)
-str_length(lines)
 
 # put the maximum number of lines in an object
 max <- map_int(lines, length) %>% max()
@@ -86,81 +86,31 @@ removedlines <- slice_tail(tibblelines, n = -9)
 
 # save the sliced transcripts as a list in an object to put them in a tibble with ids and levels later.
 removedlines <- as.list(removedlines)
-
-head(removedlines)
 ```
 
 
+cleaning the transcripts from CHAT formatting
 ```{r}
 clean <- removedlines %>% 
    str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^.|^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
   str_replace_all("_", " ")
-
-g <- as.list(clean)
-
-head(clean)
 ```
 
 
 
-creating the data frame
+creating the data frame with participants' IDs, proficiency level, and the transcripts of their production
 
 ```{r}
-# create the data frame/tibble with ids and sliced transcripts
+# create the data frame/tibble with ids, levels, and transcripts
 speechdf <- tibble(ID = ids, Level = levels, Transcript = clean)
 
-speechdf
-speechdf %>% 
-  filter(Level == "low-adv")  %>% 
-  distinct(ID) 
 
-speechdf %>% 
-  count(Level) %>% 
-  rename(Contributions = "n")
-
-speechd <- speechdf %>% 
-  select(-Transcript)
-speechd
+speechdf <- readRDS("data/speechdf.csv")
 ```
 
 
 
-
-
-Cleaning the texts from `.cha` formatting.
-
-maybe I should not remove punctuation [^\\w|\\s] so that the pos tagger knows 
-
-```{r}
-speechdf$Transcript <- speechdf$Transcript %>% 
-  str_remove_all("\\bNA\\b|\\d+_\\d+|\\*\\d+|\\d{3}|@...|\\\\t|\\\n|c\\(|[^.|^\\w|\\s]|\\buh\\s|\\bah\\s|\\bPAR|\\bPAR0") %>% 
-  str_replace_all("_", " ")
-
-head(speechdf$Transcript)
-
-```
-
-
-
-
-
-I am going to create 3 data frames to analyze the article use for each level
-
-```{r}
- lowint <- speechdf %>%
-   filter(Level == "low-int")
- lowint
- highint <- speechdf %>%
-   filter(Level == "high-int")
-
- lowadv <- speechdf %>%
-   filter(Level == "low-adv")
-
-```
-
-
-
-
+## Tagging the Transcripts
 
 I will POS tag the data frames to make analyzing the contexts of article use possible
 
@@ -175,7 +125,7 @@ model <- udpipe_load_model(file = ("english-ewt-ud-2.5-191206.udpipe"))
 ```
 
 
-a list of mass nouns:
+The POS tagger does not specify mass nouns, an distinguishing them from singular count nous is important for the analysis. Thus a list of mass nouns was created to later tag the included nouns as mass:
 ```{r}
 massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipation/NNM",
   "assistance/NNM", "awareness/NNM", "bacon/NNM", "baggage/NNM", "blood/NNM",
@@ -198,86 +148,88 @@ massNN <- c("admiration/NNM", "advice/NNM", "air/NNM", "anger/NNM", "anticipatio
   "stamina/NNM", "starvation/NNM", "steam/NNM", "steel/NNM", "stuff/NNM", "support/NNM", "sweat/NNM",
   "thunder/NNM", "timber/NNM", "toil/NNM", "traffic/NNM", "training/NNM", "trash/NNM",
   "understanding/NNM", "valor/NNM", "vehemence/NNM", "violence/NNM", "warmth/NNM", "waste/NNM",
-  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM", "money/NNM", "pollution/NNM", "oil/NNM", "bread/NNM", "pasta/NNM", "hair/NNM", "football/NNM", "soccer/NNM", "cheese/NNM", "english/NNM",  )
+  "weather/NNM", "wheat/NNM", "wisdom/NNM", "work/NNM", "food/NNM", "ham/NNM", "beef/NNM", "lettuce/NNM", "tv/NNM", "money/NNM", "pollution/NNM", "oil/NNM", "bread/NNM", "pasta/NNM", "hair/NNM", "football/NNM", "soccer/NNM", "cheese/NNM", "english/NNM"  )
 
 ```
 
 
-instead of creating three different df create a column with the tagged dfs
+Here, the POS tagger is run on the transcripts. This creates an output coercible into a tibble format that includes tokens and POS. This is put in new column that that includes a tibble for each transcript. The transcripts are then essentially recreated but with each token tagged. The last part of the code replaces the POS tag of the matching words from the mass noun list with a tag for mass nouns "NNM".
 ```{r}
-ANNOTspeech <- speechdf %>%
-  mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble))
-
+# this is the pattern used to retag mass nouns 
 patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
 
-# this is the one!!
 ANNOTspeechh <- speechdf %>%
   mutate(annoTXT = map(Transcript, ~ udpipe_annotate(model, .x) %>% as_tibble %>%   
                          mutate(annotTXT = paste(token, "/", xpos, collapse = " ", sep = "") %>% str_replace_all(patternn, "\\1/NNM"))))
 
 
+```
+
+
+
+Now that I have recreated the transcripts with POS tags, I will unnest the columns from the tibbles and only keep the tagged transcripts from that output.
+```{r}
 ANNOTspeech <- ANNOTspeechh %>% 
   unnest(annoTXT) %>% 
-  select(ID, Level, Transcript, annotTXT)
-
-ANNOTspeech <- distinct(ANNOTspeech)
-
-str_replace_all(patternn, "\\1/NNM")
-head(ANNOTspeech)
-```
-
-```{r}
-
+  select(ID, Level, Transcript, annotTXT) %>% 
+  distinct()
 ```
 
 
 
+## Extracting Tokens 
+
+The next step is to extract the tokens of indefinite article use using the tagged transcripts. But first, I must address how the incorrect-null tokens will be extracted: 
+The very long list of strings below includes all the tokens that are appropriate for incorrect-null. These were extracted by hand by going through the output of the code in the next cell because I found no better way to get the relevant tokens.
 ```{r}
-head(ANNOTspeechh$annoTXT, 2)
-low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
+# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
+# pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
+# pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|experience|worhis|forget|shopping|Weam|childhood)/NN\\s"
+# ann <- ANNOTspeech %>% 
+#   filter(Level == "low-adv") 
+# ann$annotTXT %>%
+#   str_split(pattern1) %>%
+#   str_split(pattern2) %>% 
+#   str_split("are/VBP") %>% 
+#   str_remove_all("\\b../NN\\s") %>% 
+#   str_remove_all("\\b./NN\\s|\\bwor") %>% 
+#   str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
+#   str_remove_all("um/NN|um/JJ") %>%
+# str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s")
+```
 
 
-# saved the file so I don't have to run udpipe_annotate() every time
-saveRDS(ANNOTspeech, "articles-analysis.csv")
-saveRDS(ANNOTspeech, "Private/articles-analysis.csv")
+These are split into two objects because R has a limit for how many strings can be used in `str_c()`.
+```{r}
+noart <- str_c("because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN " , "it/PRP s/VBZ good/JJ transportation/NN " ,    
+  "people/NNS use/VBP car/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN "  , "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN " , "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN " ,    
+ "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
+ "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
+ "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
+ "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
+ "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
+ "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
+ "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
+ "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
+ "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
+ "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
+ "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
+ "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
+ "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
+ "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
+ "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
+ "I/PRP saw/VBD fn/JJ snake/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", sep = "|") %>% str_replace_all(" ", "\\\\s")
 
-ANNOTspeech <- readRDS("Private/articles-analysis.csv")
-ANNOTspeech <- readRDS("Private/articles-analysis1.csv")
-head(ANNOTspeech$annoTXT, 1)
-ANNOTspeech$annoTXT %>% 
-  map_int(nrow) %>% 
-  sum()
-
-ANNOTspeech <- ANNOTspeech %>% 
-  unnest(annoTXT) 
-  select(ID, Level, Transcript, token, xpos)
-
-ANNOTspeech  
-  unique(ANNOTspeech$token_id)
+ noart2<- str_c("country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "which/WDT is/VBZ virus/NN antivirus/JJ program/NN ", "by/IN using/VBG protect/JJ protect/NN program/NN ", "of/IN living/VBG in/IN computer/NN society/NN ", "with/IN swimming/VBG pool/NN ", "of/IN using/VBG computer/NN ", "people/NNS have/VBP real/JJ problem/NN ", "it/PRP s/VBZ good/JJ thing/NN ", "they/PRP live/VBP unhealthy/JJ life/NN ", "that/DT is/VBZ that/IN is/VBZ risk/NN ", "they/PRP use/VBP firewall/NN ", "they/PRP use/VBP new/JJ way/NN ", sep = "|" ) %>% 
+  str_replace_all(" ", "\\\\s")
+ 
   
-head(ANNOTspeech)
-
-ANNOTspeech <- ANNOTspeech %>%  mutate(annotTXT = paste(ANNOTspeech$token, "/", ANNOTspeech$xpos, collapse = " ", sep = "")) %>% 
-  select(-token, -xpos)
-
-
-# Replace /NN with /NNC to tag mass nouns
-# patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
-# 
-# ANNOTspeech$annotTXT <- str_replace_all(ANNOTspeech$annotTXT, patternn, "\\1/NNM")
-  
-head(ANNOTspeech,30)
-slice_tail(ANNOTspeech, n = 9)
-
-z <- distinct(ANNOTspeech)
-head(z, 10)
-
-head(ANNOTspeech$annotTXT, 3)
 ```
 
 
-
+Here, the tokens of article use are extracted. `incorrectNull` and `incorrectNull1` extract the same contexts, but since the pattern is split into two objects I extracted them separately first.
 ```{r}
+
 ANNOTspeech <- ANNOTspeech %>% 
   mutate(correct = ANNOTspeech$annotTXT %>% 
   str_remove_all("\\b../NN\\s") %>% 
@@ -303,590 +255,82 @@ ANNOTspeech <- ANNOTspeech %>%
   str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM"),
   
   incorrectNull =  ANNOTspeech$annotTXT %>%
-  str_split(pattern1) %>%
-  str_split(pattern2) %>% 
-  str_split("are/VBP") %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s|\\bwor") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
-  str_remove_all("um/NN|um/JJ") %>%
   str_extract_all(noart),
+ 
   
   incorrectNull1 =  ANNOTspeech$annotTXT %>%
-  str_split(pattern1) %>%
-  str_split(pattern2) %>% 
-  str_split("are/VBP") %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s|\\bwor") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
-  str_remove_all("um/NN|um/JJ") %>%
   str_extract_all(noart2))
 
+```
 
+
+The next step is to pivot the data longer by putting the names of the columns of the extracted context as 'type' and the contexts of article use into 'context_of_use'. This is followed by renaming `incorrectNull1` as `incorrectNull`.  
+```{r}
 ANNOTspeech <- ANNOTspeech %>% 
-  pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "status", values_to = "contexts") %>% 
-  unnest(contexts) %>% distinct() 
+  pivot_longer(c(correct, incorrectPL, incorrectMS, incorrectNull, incorrectNull1), names_to = "type_of_use", values_to = "contexts_of_use") %>% 
+  unnest(contexts_of_use) %>% distinct()
 
-ANNOTspeech$status<- ANNOTspeech$status %>% 
-  str_replace_all("incorrectNull1", "incorrectNull")
+# renaming incorrectNull1 with incorrectNull 
+ANNOTspeech$type_of_use<- ANNOTspeech$type_of_use %>% 
+  str_replace_all("incorrectNull1", "incorrect-null") %>% 
+  str_replace_all("incorrectNull", "incorrect-null") %>% 
+  str_replace_all("incorrectPL", "incorrect-PL") %>% 
+  str_replace_all("incorrectMS", "incorrect-MS")
 
-  ANNOTspeech %>% 
-    count(Level, status)
-    filter(status == "correct") %>% 
-  
-saveRDS(ANNOTspeech, "Private/fulldataframe.csv")
-```
+# moving the new columns to the front
+ANNOTspeech <- relocate(ANNOTspeech, type_of_use, contexts_of_use, .after = Level) 
 
-
-```{r}
-
-ann <- ANNOTspeech %>% 
-  filter(Level == "low-adv") 
-ann$annotTXT %>%
-  str_split(pattern1) %>%
-  str_split(pattern2) %>% 
-  str_split("are/VBP") %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s|\\bwor") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
-  str_remove_all("um/NN|um/JJ") %>%
-str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
-  unlist()
- ann 
-
-# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used for incorrectNull.
-
-pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
-pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|experience|worhis|forget|shopping|Weam|childhood)/NN\\s"
-
-noart <- str_c("because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN " , "it/PRP s/VBZ good/JJ transportation/NN " ,    
-  "people/NNS use/VBP car/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN " , "he/PRP was/VBD child/NN "  , "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN " , "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN " ,    
- "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
- "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
- "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
- "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
- "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
- "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
- "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
- "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
- "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
- "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
- "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
- "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
- "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
- "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
- "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
- "I/PRP saw/VBD fn/JJ snake/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", sep = "|") %>% str_replace_all(" ", "\\\\s")
-
- noart2<- str_c("country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", "that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ", sep = "|" ) %>% 
-  str_replace_all(" ", "\\\\s")
-
-str_count(noart)
-str_subset(nofit, "NNC")
-noart2
-
-ll <-  LI_correct  
-  mutate(status_c = rep("correct", 208), .after = "correct") %>%  
-  mutate(status_ip = rep("incorrectPL", 208), .after = "incorrectPL") %>% 
-  mutate(status_ms = rep("incorrectMS", 208), .after = "incorrectMS")
- 
-    
-  
-  
-    lll <- ll %>% 
-      unnest(correct) %>% 
-      unnest(incorrectPL) %>% 
-      unnest(incorrectMS)
-
-  ll  
-
-  unite(status, correct, incorrectPL, incorrectMS)
-  lll
-  
-  
-  filter(Level == "low-adv") 
-    
-# Instance of incorrect use with plural nouns
-LI_incorrectPL <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_remove_all("a/DT\\sfew/JJ\\sbuses/NNS") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist()
-str_unique(LI_incorrectPL)
-
-# instances of incorrect use with mass nouns
-LI_incorrectMS <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM") %>% 
-```
-
-
-POS tagging the data frames.
-
-```{r}
-low_int <- udpipe_annotate(model, x = lowint$Transcript) %>%
-as_tibble() 
-
-testt <- low_int %>% 
-  selc
-
-head(low_int)
-```
-
-```{r}
-lowint %>% 
-  head() %>% 
-  mutate()
-  pull(Transcript) %>% 
-  udpipe_annotate(model, x = .) %>% 
-  as_tibble()
-```
-
-
-```{r}
-# high_int <- udpipe_annotate(model, x = highint$Transcript) %>% 
-#   as_tibble()
-```
-
-```{r}
-# low_adv <-  udpipe_annotate(model, x = lowadv$Transcript) %>% 
-#   as_tibble()
+# removing any duplicate observations. 
+ANNOTspeech <- distinct(ANNOTspeech)
 ```
 
 
 
+## Analysis 
 
-
-
-Now, I will annotate the texts with POS tags so I can analyze the contexts, in addition to tagging mass nouns, which the tagger does not mark.
-
+For this project the main goal is to see how many times the participants used articles, correctly or incorrectly, vs omitted them from obligatory contexts. To this end, a count of instances will be used as well as visualizations.
 ```{r}
-#I'll annotate the texts with pos
-low_int <-  low_int %>% mutate(annotTXT = paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = ""))
-low_int <-  low_int %>% paste(low_int$token, "/", low_int$xpos, collapse = " ", sep = "")
-# this pattern was created to replace /NN with /NNC for mass nouns  
-patternn <- paste0("\\b(", paste(sub("/NNM", "", massNN), collapse = "|"), ")\\b/NN")
-
-# Replace /NN with /NNC to tag mass nouns
-# low_int$annotTXT <- str_replace_all(low_int$annotTXT, patternn, "\\1/NNM")
-
-str_length(low_int)
-```
-
-
-
-```{r}
-# high_int <-  high_int %>% mutate(annotTXT = paste(high_int$token, "/", high_int$xpos, collapse = " ", sep = ""))
-
-# Replace /NN with /NNC to tag mass nouns
-# high_int$annotTXT <- str_replace_all(high_int$annotTXT, patternn, "\\1/NNC")
-
-```
-
-```{r}
- # low_adv <-  low_adv %>% mutate(annotTXT = paste(low_adv$token, "/", low_adv$xpos, collapse = " ", sep = ""))
-
- # low_adv$annotTXT <- str_replace_all(low_adv$annotTXT, patternn, "\\1/NNC")
-```
-
-
-I have saved each tagged df so that I don't have to run the tagging operations every time. Below these chunks, I have set the code for loading. Feel free to use that to skip running the tagger.
-```{r}
-# saveRDS(low_int, "data/lowint.csv")
-# saveRDS(high_int, "data/highint.csv")
-# saveRDS(low_adv, "data/lowadv.csv")
-```
-
-
-instead of tagging every time, i made these tagged dfs.
-```{r}
-low_int <- readRDS("Private/lowint.csv")
-high_int <- readRDS("Private/highint.csv")
-low_adv <- readRDS("Private/lowadv.csv")
-```
-
-
-Here, I will attempt to extract the contexts of article use for low-intermediate, high-intermediate, and low-advanced.
-
-Low-intermediate
-```{r}
-LI_correct <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_remove_all("a/DT\\screating/NN\\s|a/DT\\smam/NN\\s|a/DT\\sfewer/JJR\\sgarage/NN\\s|a/DT\\sthe/DT\\stopic/NN\\s|a/DT\\sfewer/JJR\\sparking/NN\\s") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-str_unique(LI_correct)
-
-
-# Instance of incorrect use with plural nouns
-LI_incorrectPL <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_remove_all("a/DT\\sfew/JJ\\sbuses/NNS") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist()
-str_unique(LI_incorrectPL)
-
-# instances of incorrect use with mass nouns
-LI_incorrectMS <- low_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNM") %>% 
-  unlist()
-str_unique(LI_incorrectMS)
-
-
-# I created a pattern to exclude so that I can focus on cases where indefinite articles were not used. 
-
-pattern1 <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?(\\w+|someone|something|somewhere|everything|everyone)/NN\\s"
-pattern2 <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|pollution|experience|oil|bread|pasta|hair|football|soccer|worhis|cheese|english|forget|shopping|Weam|childhood)/NN\\s"
-
-
-# These are all the contexts that don't fit the requirement  
-nofit <-  str_c("worhe/PRP has/VBZ requality/NN ", "he/PRP took/VBD care/NN ",  "always/RB playing/VBG barbie/NN ", "I/PRP woke/VBD up/RP morning/NN ", "he/PRP is/VBZ best/JJS friend/NN ", "and/CC hes/VBZ stole/NN ", "he/PRP had/VBD many/JJ problem/NN ",  "there/EX are/VBP different/JJ way/NN ", "cheese/NN has/VBZ different/JJ kind/NN ",  "they/PRP want/VBP creat/NN ", "he/PRP had/VBD he/PRP assist/NN ", "I/PRP woke/VBD up/RP saturday/NN ",  "in/IN was/VBD tra/NN ",   "we/PRP had/VBD dinner/NN ", "he/PRP lives/VBZ in/IN sultana/NN ", "you/PRP are/VBP you/PRP name/NN ",   "guys/NNS was/VBD best/JJS friend/NN ", "I/PRP miss/VBP him/PRP morcoord/NN ", "I/PRP was/VBD walk/NN ", "mother/NN\\stook/VBD\\scare/NN", "there/EX\\sare/VBP\\sfewer/JJR\\sfewer/NN", "he/PRP\\sdid/VBD\\smany/JJ\\sthing/NN", "he/PRP\\sread/VBD\\smore/JJR\\sstory/NN", "we/PRP\\swe/VBD\\sin/IN\\sfact/NN", "friend/NN\\sis/VBZ\\sname/NN", "I/PRP\\swant/VBP\\stalk/NN", sep = "|") %>% 
-  str_replace_all(" ", "\\\\s")
-
-
-# pulls out instances where a/an should have been used.
-LI_null <- low_int$annotTXT %>%
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_split(pattern1) %>%
-  str_split(pattern2) %>% 
-  str_remove_all("um/NN") %>%
-  str_remove_all(nofit) %>% 
-  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-str_unique(LI_null)  
-  str_subset("are/VBP")
-  LI_null
-  str_remove_all(nofit) %>% 
-    
-    
-    c( "because/IN hes/VBZ intelligent/JJ man/NN ", "people/NNS use/VBP taxi/NN ", "it/PRP s/VBZ good/JJ transportation/NN ", "people/NNS use/VBP car/NN "                   "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP was/VBD child/NN ", "he/PRP has/VBZ hes/NNS challenge/NN ", "and/CC need/VBP cup/NN ", "I/PRP take/VBP assist/NN ", "there/EX is/VBZ fewer/JJR pollution/NN ", "we/PRP have/VBP tomato/NN ", "is/VBZ egg/VBG with/IN cheese/NN ", "which/WDT is/VBZ oil/NN wil/NN ", "we/PRP put/VBD it/PRP oil/NN ", "is/VBZ is/VBZ little/JJ bit/NN ", "is/VBZ is/VBZ little/JJ bit/NN ", "food/NNCC was/VBD s/POS cheese/NN ", "is/VBZ made/VBN from/IN bread/NN ", "in/IN cutting/VBG cheese/NN ", "he/PRP is/VBZ studying/VBG english/NN ", "child/NN was/VBD um/JJ pasta/NN ", "I/PRP want/VBP eat/JJ pasta/NN ", "they/PRP have/VBP good/JJ economy/NN ", "I/PRP was/VBD child/NN ", "ah/RB hes/VBZ old/JJ friend/NN ", "she/PRP has/VBZ black/JJ hair/NN ", "it/PRP was/VBD normal/JJ day/NN ", "he/PRP has/VBZ sense/NN ", "usually/RB go/VBP in/IN picnic/NN ", "this/DT is/VBZ significant/JJ day/NN ", "he/PRP was/VBD wants/VBZ device/NN ", "I/PRP want/VBP device/NN ", "we/PRP played/VBD soccer/NN "                 "female/JJ played/VBN soccer/NN "             
- "was/VBD playing/VBG playing/VBG football/NN " "you/PRP played/VBD football/NN "              "I/PRP played/VBD football/NN "               
- "it/PRP s/VBZ first/JJ time/NN "               "I/PRP was/VBD child/NN "                      "that/WDT was/VBD abnormal/JJ thing/NN "      
- "this/DT is/VBZ bad/JJ surprise/NN "           "I/PRP went/VBD to/IN university/NN "          "she/PRP have/VBP similar/JJ way/NN "         
- "it/PRP was/VBD normal/JJ day/NN "             "we/PRP spend/VBP great/JJ time/NN "           "we/PRP played/VBD soccer/NN moradvtem/NN "   
- "we/PRP went/VBD to/IN market/NN "             "Ali/NNP is/VBZ good/JJ friend/NN "            "Ali/NNP is/VBZ good/JJ friend/NN "           
- "he/PRP has/VBZ requality/NN quality/NN "      "I/PRP saw/VBD snake/NN "                      "I/PRP saw/VBD snake/NN "                     
- "I/PRP saw/VBD snake/NN worbut/NN "            "I/PRP saw/VBD snake/NN "                      "I/PRP saw/VBD fn/JJ snake/NN "               
- "I/PRP saw/VBD fn/JJ snake/NN " )
-  
-  
-  c("because/IN hes/VBZ intelligent/JJ man/NN ",    "people/NNS use/VBP taxi/NN " ,                 "it/PRP s/VBZ good/JJ transportation/NN " ,    
-  "people/NNS use/VBP car/NN " ,                  "he/PRP was/VBD child/NN " ,                    "he/PRP was/VBD child/NN " ,                   
-  "he/PRP was/VBD child/NN " ,                    "he/PRP was/VBD child/NN "  ,                   "he/PRP has/VBZ hes/NNS challenge/NN ",        
- "and/CC need/VBP cup/NN " ,                     "I/PRP take/VBP assist/NN ",                    "there/EX is/VBZ fewer/JJR pollution/NN " ,    
- "we/PRP have/VBP tomato/NN " ,                  "is/VBZ egg/VBG with/IN cheese/NN ",            "which/WDT is/VBZ oil/NN wil/NN " ,            
- "we/PRP put/VBD it/PRP oil/NN "  ,              "is/VBZ is/VBZ little/JJ bit/NN ",              "is/VBZ is/VBZ little/JJ bit/NN ",             
- "food/NNCC was/VBD s/POS cheese/NN " ,          "is/VBZ made/VBN from/IN bread/NN ",            "in/IN cutting/VBG cheese/NN " ,               
- "he/PRP is/VBZ studying/VBG english/NN ",       "child/NN was/VBD um/JJ pasta/NN ",             "I/PRP want/VBP eat/JJ pasta/NN ",             
- "they/PRP have/VBP good/JJ economy/NN ",        "I/PRP was/VBD child/NN ",                      "ah/RB hes/VBZ old/JJ friend/NN ",             
- "she/PRP has/VBZ black/JJ hair/NN ",            "it/PRP was/VBD normal/JJ day/NN " ,            "he/PRP has/VBZ sense/NN ",                    
- "usually/RB go/VBP in/IN picnic/NN ",           "this/DT is/VBZ significant/JJ day/NN ",        "he/PRP was/VBD wants/VBZ device/NN ",         
- "I/PRP want/VBP device/NN ",                    "we/PRP played/VBD soccer/NN ",                 "female/JJ played/VBN soccer/NN ",             
- "was/VBD playing/VBG playing/VBG football/NN ", "you/PRP played/VBD football/NN ",              "I/PRP played/VBD football/NN ",               
- "it/PRP s/VBZ first/JJ time/NN ",               "I/PRP was/VBD child/NN " ,                     "that/WDT was/VBD abnormal/JJ thing/NN ",      
- "this/DT is/VBZ bad/JJ surprise/NN "  ,         "I/PRP went/VBD to/IN university/NN " ,         "she/PRP have/VBP similar/JJ way/NN " ,        
- "it/PRP was/VBD normal/JJ day/NN "  ,           "we/PRP spend/VBP great/JJ time/NN " ,          "we/PRP played/VBD soccer/NN moradvtem/NN "  , 
- "we/PRP went/VBD to/IN market/NN " ,            "Ali/NNP is/VBZ good/JJ friend/NN ",            "Ali/NNP is/VBZ good/JJ friend/NN " ,          
- "he/PRP has/VBZ requality/NN quality/NN ",      "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD snake/NN ",                     
- "I/PRP saw/VBD snake/NN worbut/NN ",            "I/PRP saw/VBD snake/NN ",                      "I/PRP saw/VBD fn/JJ snake/NN ",               
- "I/PRP saw/VBD fn/JJ snake/NN " )
-
-```
-
-
-
-
-High-intermediate
-```{r}
-HI_correct <- high_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("pollution|a/DT\\smany/JJ\\sfuture/NN|a/DT\\smissing/NN|a/DT\\sskin/NN\\scancer/NN|a/DT\\slil/NN|a/DT\\sArab/JJ\\sGulf/NN|a/DT\\sgood/JJ\\sethics/NN|a/DT\\stha/NN|an/DT\\sd/JJ\\smoreover/NN|a/DT\\swalking/NN|a/DT\\smoney/NN") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-  
-str_unique(HI_correct)
-
-# instances of incorrect use of plural nouns
-HI_incorrectPL<- high_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("a/DT\\scouple/NN\\syears/NNS") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist()
-HI_incorrectPL
-
-# instances of incorrect use of mass nouns
-HI_incorrectMS <- high_int$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>%
-  str_remove_all("a/DT\\swhole/JJ\\ssheep/NNC") %>%
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNC") %>% 
-  unlist()
-str_unique(HI_incorrectMS)
-
-
-pattern <- "\\w+/(DT|CD)\\s(\\w+/\\w+\\s)?\\w+/NN\\s"
-patt <- "\\w+/VB.\\s(\\w+/\\w+\\s)?(someone|something|somewhere|everything|everyone|anyone|anybody|anything|nothing|pollution|experience|oil|bread|pasta|hair|football|soccer|worhis|cheese|english|forget|shopping|Weam|childhood)/NN\\s"
-
-HI_null <- high_int$annotTXT %>%
-  str_unique() %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
-  str_split("are/VBP|something/NN\\s") %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s|\\bwor") %>% 
-  str_remove_all("\\bPAR/NN|\\bPAR0/NN|\\bPAR0|\\bPAR1") %>% 
-  str_remove_all("um/NN|um/JJ") %>%
-  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
-  unlist()
-str_unique(HI_null)
-  
-
-
-
-
-# it was easier and faster for the high-int to pick out the appropriate contexts rather than the ill-fitted ones because of the large number of contributions in this level
-
-HI_null <- c("that/IN causing/VBG problem/NN ", "I/PRP have/VBP vacation/NN ", "it/PRP s/VBZ small/JJ city/NN ",  "renting/VBG rent/JJ apartment/NN ", "that/WDT s/VBZ difference/NN ",  "I/PRP think/VBP it/PRP s/VBZ fish/NN ",  "that/WDT s/VBZ custom/JJ and/NN ", "I/PRP was/VBD graduate/NN ", "we/PRP need/VBP job/NN ", "it/PRP s/VBZ very/RB beautiful/JJ university/NN ", "it/PRP s/VBZ high/JJ cost/NN ", "I/PRP love/VBP wedding/NN party/NN ", "it/PRP is/VBZ big/JJ city/NN ", "I/NNS come/VBP from/IN real/JJ city/NN ", "there/EX is/VBZ far/JJ farm/NN ", "that/DT s/VBZ bad/JJ behavior/NN ", "he/PRP was/VBD talk/VB with/IN bird/NN ", "it/PRP is/VBZ small/JJ city/NN ", "be/VB becoming/VBG more/JJR clear/JJ idea/NN ", "who/WP went/VBD to/IN marriage/NN ", "also/RB have/VBP extra/JJ separation/NN ", "it/PRP is/VBZ like/IN custom/NN ", "so/NN hes/VBZ very/RB famous/JJ person/NN ", "and/CC look/VBP quiet/JJ city/NN ", "who/WP needs/VBZ operation/NN ", "it/PRP was/VBD um/RB interesting/JJ job/NN ", "country/NN faces/VBZ sometimes/RB chronic/JJ disease/NN ", "he/PRP was/VBD inspiration/NN ", "they/PRP get/VBP boy/NN ", "it/PRP has/VBZ really/RB nice/JJ view/NN ",  "Arabia/NNP renting/VBG apartment/NN ", "they/PRP do/VBP nt/RB have/VB job/NN ",  "become/VBP better/JJR person/NN ", "he/PRP is/VBZ very/RB good/JJ person/NN ", "and/CC have/VBP picnic/NN ", "usually/RB have/VBP picnic/NN ", "that/WDT made/VBD him/PRP famous/JJ person/NN ", "I/PRP come/VBP from/IN real/JJ city/NN ", "I/PRP live/VBP in/IN small/JJ town/NN ",  "is/VBZ bad/JJ behavior/NN ",  "city/NN is/VBZ coastal/JJ city/NN ", "it/PRP s/VBZ castle/NN city/NN ", "it/PRP is/VBZ small/JJ small/JJ city/NN ", "I/PRP graduate/VBP from/IN bachelor/NN degree/NN ", "it/PRP was/VBD girl/NN ", "he/PRP was/VBD very/RB famous/JJ person/NN ", "is/VBZ is/VBZ not/RB good/JJ way/NN ", "it/PRP is/VBZ nice/JJ job/NN ", "he/PRP is/VBZ also/RB old/JJ man/NN ", "they/PRP get/VBP girl/NN ", "it/PRP s/VBZ look/VB like/IN circle/NN ", "who/WP was/VBD prince/NN ", "it/PRP s/VBZ really/RB big/JJ city/NN ") 
-
-length(HI_null)
-HI_null
-```
-
-
-
-Low-advanced
-```{r}
-LA_correct <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("a/DT\\senter/NN|a/DT\\skra/NN|a/DT\\smoney/NN|a/DT\\scensorshi/NN\\scen/NN|a/DT\\scompassion/NN|a/DT\\sligstory/NN\\sluxury/NN ") %>% 
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NN\\s") %>% 
-  unlist()
-str_unique(LA_correct)
-
-# instances of incorrect use with plural nouns
-LA_incorrectPL <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_remove_all("a/DT\\sfew/JJ\\sscenes/NNS|a/DT\\sfew/JJ\\smovies/NNS") %>%
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNS") %>% 
-  unlist()
-LA_incorrectPL
-
-# instances of incorrect use with mass nouns
-LA_incorrectMS <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>%
-  str_extract_all("(a|an)/DT\\s(\\w+/\\w+\\s)?\\w+/NNC") %>% 
-  unlist()
-LA_incorrectMS
-
-
-LA_null <- low_adv$annotTXT %>% 
-  str_unique() %>% 
-  str_split(pattern) %>%
-  str_split(patt) %>% 
-  str_split("are/VBP") %>% 
-  str_remove_all("\\b../NN\\s") %>% 
-  str_remove_all("\\b./NN\\s") %>% 
-  str_extract_all("\\w+/\\w+\\s\\w+/VB.\\s(\\w+/\\w+\\s){0,2}\\w+/NN\\s") %>% 
-  unlist()
-str_unique(LA_null) 
-  str_subset("are/VBP")
-  
-LA_null  <- c("by/IN using/VBG protect/JJ protect/NN program/NN " , "of/IN living/VBG in/IN computer/NN society/NN ", "I/PRP think/VBP violence/NNCC movie/NN has/VBZ ", "in/IN computer/NN sized/VBN computerized/VBN society/NN ", "I/PRP gave/VBD example/NN ", "there/EX is/VBZ there/EX is/VBZ amount/NN "  , "people/NNS have/VBP real/JJ problem/NN " , "it/PRP s/VBZ good/JJ thing/NN " , "by/IN using/VBG antivirus/IN program/NN " , "they/PRP use/VBP new/JJ way/NN " ,  "which/WDT is/VBZ virus/NN antivirus/JJ program/NN " , "with/IN swimming/VBG pool/NN ", "and/CC being/VBG danger/NN " , "they/PRP live/VBP unhealthy/JJ life/NN "  , "that/WDT is/VBZ that/IN is/VBZ risk/NN ")
-  
-  LA_null %>% 
-    str_extract("that/WDT\\sfocus/VBP\\sin/IN\\sviolence/NNCC\\smovie/NN\\s\\w+/\\w+")
-  
-```
-
-
-
-Here, I put the extracted contexts into a df and added a columns tagging level and use.
-
-low-intermediate
-```{r}
-lowint_corr <- str_unique(LI_correct) %>% 
-  as_tibble() %>% 
-rename("LI_correct" = "value") %>% 
-  mutate(status = "low-int_correct", .after = LI_correct)
-lowint_corr
-
-# incoorect with plurals
-lowint_incorrPL <- str_unique(LI_incorrectPL) %>%
-  as_tibble() %>% 
-rename("LI_incorrectPL" = "value") %>% 
-  mutate(status = "low-int_incorrect-PL", .after = LI_incorrectPL)
-
-# incorrect with mass
-lowint_incorrMS <- str_unique(LI_incorrectMS) %>%
-  as_tibble() %>% 
-rename("LI_incorrectMS" = "value") %>% 
-  mutate(status = "low-int_incorrect-MS", .after = LI_incorrectMS)
-
-
-
-lowint_null <- str_unique(LI_null) %>% 
-  as_tibble() %>% 
-rename("LI_null" = "value") %>% 
-  mutate(status = "low-int_incorrect-null", .after = LI_null)
-lowint_null
-```
-
-
-
-high-intermediate
-```{r}
-highint_corr <- str_unique(HI_correct) %>% 
-  as_tibble() %>% 
-rename("HI_correct" = "value") %>% 
-  mutate(status = "high-int_correct", .after = HI_correct) 
-highint_corr 
-
-#incorrect with plurals
-highint_incorrPL <- str_unique(HI_incorrectPL) %>%
-  as_tibble() %>% 
-rename("HI_incorrectPL" = "value") %>% 
-  mutate(status = "high-int_incorrect-PL", .after = HI_incorrectPL)
-
-# incorrect with mass
-highint_incorrMS <- str_unique(HI_incorrectMS) %>%
-  as_tibble() %>% 
-rename("HI_incorrectMS" = "value") %>% 
-  mutate(status = "high-int_incorrect-MS", .after = HI_incorrectMS)
-
-highint_null <- str_unique(HI_null) %>% 
-  as_tibble() %>% 
-rename("HI_null" = "value") %>% 
-  mutate(status = "high-int_incorrect-null", .after = HI_null)
-
-```
-
-
-low-advanced
-```{r}
-lowad_corr <- str_unique(LA_correct) %>%
-  as_tibble() %>% 
-rename("LA_correct" = "value") %>% 
-  mutate(status = "low-adv_correct", .after = LA_correct)
-```
-
-
-```{r}
-# incorrect with plurals
-lowad_incorrPL <- str_unique(LA_incorrectPL) %>%
-  as_tibble() %>% 
-rename("LA_incorrectPL" = "value") %>% 
-  mutate(status = "low-adv_incorrect-PL", .after = LA_incorrectPL)
-
-# incorrect with mass
-lowad_incorrMS <- str_unique(LA_incorrectMS) %>%
-  as_tibble() %>% 
-rename("LA_incorrectMS" = "value") %>% 
-  mutate(status = "low-adv_incorrect-MS", .after = LA_incorrectMS)
-```
-
-
-```{r}
-lowad_null <- str_unique(LA_null) %>% 
-  as_tibble() %>% 
-rename("LA_null" = "value") %>% 
-  mutate(status = "low-adv_incorrect-null", .after = LA_null)
-```
-
-
-
-Creating the variables from the tibbles created above to get the "final" form of the data from which the analysis can be done.
-```{r}
-Status <- c(lowint_corr$status, lowint_incorrPL$status, lowint_incorrMS$status, lowint_null$status, highint_corr$status, highint_incorrPL$status, highint_incorrMS$status, highint_null$status, lowad_corr$status, lowad_incorrPL$status, lowad_incorrMS$status, lowad_null$status)
-
-Article_contexts <- c(lowint_corr$LI_correct, lowint_incorrPL$LI_incorrectPL, lowint_incorrMS$LI_incorrectMS, lowint_null$LI_null, highint_corr$HI_correct, highint_incorrPL$HI_incorrectPL, highint_incorrMS$HI_incorrectMS, highint_null$HI_null, lowad_corr$LA_correct, lowad_incorrPL$LA_incorrectPL, lowad_incorrMS$LA_incorrectMS,  lowad_null$LA_null)
-
-articles <- tibble(ids, Article_contexts, Status)
-ids
-# separating level and correctness of use into two columns
-articles <- articles %>% 
-  separate(Status, into = c("Level", "Use"), sep = "_")
-
-view(articles)
-#This is the final form of the data. For any new changes I make I'll run this again to overwrite the old version
-saveRDS(articles, "data/articles_final.csv")
-articles <- readRDS("data/articles_final.csv")
-
-
-
-#write_csv(articles, "Private/articles_final2.csv")
-```
-
-
-For this project the main goal is to see how many times the participants used articles, correctly or incorrectly, vs omitted them from obligatory contexts. To this end, a count of instances will be used. Some more work needs to be done to ensure all the examples included in each category is appropriate, but the analysis goal will remain the same for now.
-
-```{r}
-articles  %>% 
-  filter(Level == "low-adv") %>% 
-  count(Use)
-  
-articles
-  inner_join(speechd, by = "Level")
-```
-
-
-```{r}
-# This code shows the overall frequency with each level indicated in the plot
-articles %>% 
-  ggplot(aes(as_factor(Level), fill = Use))+
+# a plot showing the proportion of difference of each type of use per level
+ANNOTspeech %>% 
+  ggplot(aes(as_factor(Level), fill = type_of_use))+
   geom_bar(position = "fill")+
-  xlab("Level")
-  scale_fill_manual(values = c("correct" = "red", "incorrect-MS" = "limegreen", "incorrect-null" = "blue", "incorrect-PL" = "purple"))
-
-
-articles1
-# This code visualizes the frequency for each level with renamed variables for better visibility on the plot
-articles1 <- articles
-articles1$Use <- articles1$Use %>%  
-  str_replace_all("correct", "cor") %>% 
-  str_replace_all("incorrect-PL", "incPL") %>%
-  str_replace_all("incorrect-MS", "incMS") 
-articles1 %>% 
-  ggplot(aes(Use))+
-  geom_bar(fill = "brown")+
-  facet_wrap(~as_factor(Level))
-
-articles
-
+  labs(x = "Level", y = "Frequency")
 ```
+
+for further clarity
 ```{r}
-# only selecting correct and null for the proportion table
-arts <- articles %>% 
-  filter(Use == "correct"|Use == "null") 
-table(arts$Level, arts$Use)
-
-s <- prop.table(table(arts$Level, arts$Use), 1)
-
-
-
-# changing the values from the proportions table into percentages
-ss <- apply(s * 100, 2, function(x) paste0(round(x, 1), "%"))
-rownames(ss)<- rownames(s)
-ss
+table(ANNOTspeech$Level, ANNOTspeech$type_of_use)
 ```
 
+
+insuring that the token contributions from participants in each level are fairly even
+```{r}
+# insuring that a single participant did not produce most or all of the tokens in correct and incorrect-null
+   ANNOTspeech %>% 
+  filter(type_of_use == "correct"|type_of_use == "incorrect-null") %>% 
+  count(as_factor(Level), type_of_use, ID)  %>% 
+    rename(Level = "as_factor(Level)") %>% 
+    ggplot(aes(Level, n))+
+    geom_boxplot() +
+    geom_jitter()+
+    facet_wrap(~ type_of_use)+
+    labs(title = "Type of use per participant", y = "Frequency")
+     
+
+# insuring that a single participant did not produce most or all of the tokens in incorrect-PL and incorrect-MS
+   ANNOTspeech %>% 
+  filter(type_of_use == "incorrect-PL"|type_of_use == "incorrect-MS") %>%
+  count(as_factor(Level), type_of_use, ID)  %>% 
+  rename(Level = "as_factor(Level)") %>%
+    ggplot(aes(Level, n))+
+    geom_boxplot() +
+    geom_jitter()+
+    facet_wrap(~ type_of_use)+
+    labs(title = "Type of use per participant", y = "Frequency")
+```
+
+
+```{r}
+sessionInfo()
+```
 
