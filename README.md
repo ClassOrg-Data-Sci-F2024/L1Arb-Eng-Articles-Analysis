@@ -8,7 +8,7 @@ ABA222\@pitt.edu
 
 ## Description
 
-This study examines the use of indefinite articles by L1 Arabic learners of English to determine whether or not Arabic has an indefinite marker. This study examines the use of indefinite articles by L1 Arabic learners of English to determine whether or not Arabic has an indefinite marker. It is unclear in the literature on Arabic grammar whether indefiniteness is marked. In particular, the phenomenon of ‘nunation’ has left researchers divided on the matter. Nunation is a /n/ sound added to the end of words following a short vowel sound. Some of the work done on Arabic grammar claims that nunation is a marker of indefiniteness while some argues against this account.
+This study examines the use of indefinite articles by L1 Arabic learners of English to determine whether or not Arabic has an indefinite marker. It is unclear in the literature on Arabic grammar whether indefiniteness is marked. In particular, the phenomenon of ‘nunation’ has left researchers divided on the matter. Nunation is a /n/ sound added to the end of words following a short vowel sound. Some of the work done on Arabic grammar claims that nunation is a marker of indefiniteness while some argues against this account. The goal of this project is to see whether nunation transfers into L2 production as an indefinite article since Arabic does not have any other morpheme associated with indefiniteness.
 
 ## Data
 
