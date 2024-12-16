@@ -38,4 +38,6 @@ The study utilizes corpus data from [TalkBank](https://slabank.talkbank.org/acce
 
 ### 
 
-### 
+## Acknowledgement of AI Use
+
+I acknowledge the use of [ChatGPT](https://chatgpt.com/share/673bf189-153c-800a-81d9-7d0f5ec6c064) on November 5 to aid in generating code to tag mass nouns in the output of the POS tagger appropriately. This is because mass nouns are tagged as singular count nouns in the output of the POS tagger used.
