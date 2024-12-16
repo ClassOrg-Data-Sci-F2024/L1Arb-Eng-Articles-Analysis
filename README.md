@@ -26,7 +26,7 @@ The study utilizes corpus data from [TalkBank](https://slabank.talkbank.org/acce
 
 [Final data](data/Final_data) This includes the final data that was analyzed in this project
 
-[Figure](figures): This includes the figures used in the analysis
+[Figures](figures): This includes the figures used in the analysis
 
 [License](LICENSE.md): This is the license used for the data
 
