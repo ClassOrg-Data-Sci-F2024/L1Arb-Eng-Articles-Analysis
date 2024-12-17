@@ -88,7 +88,7 @@ Overall, the tokens in which the indefinite article was used correctly (correct)
 
 *The frequency of types of indefinite article use per level.*
 
-![](images/unnamed-chunk-14-1.png){width="614"}
+![](figures/unnamed-chunk-14-1.png){width="513"}
 
 Additionally, individuals' production in each type of use (correct, incorrect-MS, incorrect-PL, incorrect-null) was analyzed to ensure that a single participant did not produce the majority of tokens in each type. Figure 2 shows participants' contribution of tokens. For better visibility, and considering the significantly low frequency of incorrect-MS and incorrect-PL, they were left out of the visualization in Figure 2 after ensuring that most tokens came from different participants. There appear to be some outliers in the low-intermediate and high-intermediate levels' production of correct and incorrect-null tokens. However, it is only a very small number of participants, and whether or not they remain will not change the large difference between the correct tokens and the incorrect tokens.
 
@@ -96,7 +96,7 @@ Additionally, individuals' production in each type of use (correct, incorrect-MS
 
 *Participants' production of correct vs incorrect-null tokens per level.*
 
-![](images/unnamed-chunk-16-1.png){width="524"}
+![](figures/unnamed-chunk-16-1.png){width="472"}
 
 ## Discussion
 
